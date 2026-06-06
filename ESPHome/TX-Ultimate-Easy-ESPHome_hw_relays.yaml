@@ -181,130 +181,8 @@ light:
       then:
         - lambda: id(relay_3_state) = true; show_relay_status->execute();
     on_turn_off:
-      then:
-        - lambda: id(relay_3_state) = false; show_relay_status->execute();
-  - id: light_output_4
-    name: Light output 4
-    output: output_relay_4
-    platform: binary
-    internal: ${SL_RELAY_4_MODE != 2 or gang_count < 4}
-    restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
-    on_turn_on:
-      then:
-        - lambda: id(relay_4_state) = true; show_relay_status->execute();
-    on_turn_off:
-      then:
-        - lambda: id(relay_4_state) = false; show_relay_status->execute();
 
-  # ── Color pickers — one per relay, exposed to HA so you can set the color ──
-  # These are configuration-only lights. Turning them on/off here does nothing
-  # to the relay; they just store the color that will be used when the relay is on.
-
-  # ── Color pickers — one per relay, exposed to HA so you can set the color ──
-  - id: relay_1_color_light
-    name: Relay 1 color
-    platform: rgb
-    red: relay_1_color_output_r
-    green: relay_1_color_output_g
-    blue: relay_1_color_output_b
-    internal: ${gang_count < 1}
-    disabled_by_default: false
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_ON
-    on_turn_on:
-      then:
-        - lambda: |-
-            auto values = id(relay_1_color_light).current_values;
-            id(relay_1_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_1_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_1_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-            show_relay_status->execute();
-    on_state:
-      then:
-        - lambda: |-
-            auto values = id(relay_1_color_light).current_values;
-            id(relay_1_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_1_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_1_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-
-  - id: relay_2_color_light
-    name: Relay 2 color
-    platform: rgb
-    red: relay_2_color_output_r
-    green: relay_2_color_output_g
-    blue: relay_2_color_output_b
-    internal: ${gang_count < 2}
-    disabled_by_default: false
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_ON
-    on_turn_on:
-      then:
-        - lambda: |-
-            auto values = id(relay_2_color_light).current_values;
-            id(relay_2_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_2_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_2_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-            show_relay_status->execute();
-    on_state:
-      then:
-        - lambda: |-
-            auto values = id(relay_2_color_light).current_values;
-            id(relay_2_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_2_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_2_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-
-  - id: relay_3_color_light
-    name: Relay 3 color
-    platform: rgb
-    red: relay_3_color_output_r
-    green: relay_3_color_output_g
-    blue: relay_3_color_output_b
-    internal: ${gang_count < 3}
-    disabled_by_default: false
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_ON
-    on_turn_on:
-      then:
-        - lambda: |-
-            auto values = id(relay_3_color_light).current_values;
-            id(relay_3_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_3_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_3_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-            show_relay_status->execute();
-    on_state:
-      then:
-        - lambda: |-
-            auto values = id(relay_3_color_light).current_values;
-            id(relay_3_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_3_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_3_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-
-  - id: relay_4_color_light
-    name: Relay 4 color
-    platform: rgb
-    red: relay_4_color_output_r
-    green: relay_4_color_output_g
-    blue: relay_4_color_output_b
-    internal: ${gang_count < 4}
-    disabled_by_default: false
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_ON
-    on_turn_on:
-      then:
-        - lambda: |-
-            auto values = id(relay_4_color_light).current_values;
-            id(relay_4_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_4_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_4_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-            show_relay_status->execute();
-    on_state:
-      then:
-        - lambda: |-
-            auto values = id(relay_4_color_light).current_values;
-            id(relay_4_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
-            id(relay_4_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
-            id(relay_4_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
-
+  # ── Relay indicator light partitions (all internal) ──────────────────────
   # ── Relay indicator light partitions (all internal, not exposed to HA) ───
   - &light_partition_relays
     id: light_rl_1_1_Bottom
@@ -558,6 +436,7 @@ light:
         to: ${2 if IS_EU_MODEL else 3}
 
 # ── Dummy outputs for the color picker RGB lights ────────────────────────────
+
 output:
   - id: output_relay_1
     platform: gpio
@@ -571,35 +450,6 @@ output:
   - id: output_relay_4
     platform: gpio
     pin: GPIO23
-
-  - &dummy_output
-    id: relay_1_color_output_r
-    platform: template
-    type: float
-    write_action:
-      - lambda: return;
-  - id: relay_1_color_output_g
-    <<: *dummy_output
-  - id: relay_1_color_output_b
-    <<: *dummy_output
-  - id: relay_2_color_output_r
-    <<: *dummy_output
-  - id: relay_2_color_output_g
-    <<: *dummy_output
-  - id: relay_2_color_output_b
-    <<: *dummy_output
-  - id: relay_3_color_output_r
-    <<: *dummy_output
-  - id: relay_3_color_output_g
-    <<: *dummy_output
-  - id: relay_3_color_output_b
-    <<: *dummy_output
-  - id: relay_4_color_output_r
-    <<: *dummy_output
-  - id: relay_4_color_output_g
-    <<: *dummy_output
-  - id: relay_4_color_output_b
-    <<: *dummy_output
 
 script:
   - id: !extend boot_initialize
