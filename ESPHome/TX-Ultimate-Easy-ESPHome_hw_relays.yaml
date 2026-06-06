@@ -2,9 +2,7 @@
 #####                              TX Ultimate Easy for ESPHome                                #####
 #####                  Repository: https://github.com/edwardtfn/TX-Ultimate-Easy               #####
 ####################################################################################################
-##### Purpose: ESPHome - Hardware - Relays                                                     #####
-####################################################################################################
-##### Author: edwardtfn - https://github.com/edwardtfn - https://buymeacoffee.com/edwardfirmo  #####
+##### Purpose: ESPHome - Hardware - Relays (forked: full-side LEDs + color persistence)       #####
 ####################################################################################################
 ---
 substitutions:
@@ -30,8 +28,6 @@ substitutions:
   RELAY_MODE_TEXT_NOT_USED: "Not in use"
 
   RELAYS_LIGHT_RESTORE_MODE: RESTORE_DEFAULT_OFF
-  RELAYS_LIGHT_PARTITION_RESTORE_MODE: RESTORE_DEFAULT_OFF
-  RELAYS_EXPOSE_LEDS_TO_HA_RESTORE_MODE: RESTORE_DEFAULT_OFF
   RELAYS_SWITCH_RESTORE_MODE: RESTORE_DEFAULT_OFF
 
   TAG_HW_RELAYS: tx_ultimate_easy.hw.relays
@@ -82,6 +78,56 @@ globals:
     type: bool
     initial_value: 'false'
 
+  # Stored colors per relay (RGB 0-255), persisted across reboots
+  - id: relay_1_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_1_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_1_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_2_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_2_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_2_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_3_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_3_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_3_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_4_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_4_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_4_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+
 light:
   - id: light_output_1
     name: Light output 1
@@ -91,14 +137,10 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_1_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_1_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_1_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_1_state) = false; show_relay_status->execute();
   - id: light_output_2
     name: Light output 2
     output: output_relay_2
@@ -107,14 +149,10 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_2_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_2_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_2_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_2_state) = false; show_relay_status->execute();
   - id: light_output_3
     name: Light output 3
     output: output_relay_3
@@ -123,14 +161,10 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_3_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_3_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_3_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_3_state) = false; show_relay_status->execute();
   - id: light_output_4
     name: Light output 4
     output: output_relay_4
@@ -139,41 +173,131 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_4_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_4_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
+        - lambda: id(relay_4_state) = false; show_relay_status->execute();
+
+  # ── Color pickers — one per relay, exposed to HA so you can set the color ──
+  # These are configuration-only lights. Turning them on/off here does nothing
+  # to the relay; they just store the color that will be used when the relay is on.
+  - &relay_color_picker
+    id: relay_1_color_light
+    name: Relay 1 color
+    platform: rgb
+    red: relay_1_color_output_r
+    green: relay_1_color_output_g
+    blue: relay_1_color_output_b
+    internal: ${gang_count < 1}
+    disabled_by_default: false
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      then:
         - lambda: |-
-            id(relay_4_state) = false;
+            auto values = id(relay_1_color_light).current_values;
+            id(relay_1_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_1_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_1_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
             show_relay_status->execute();
+    on_state:
+      then:
+        - lambda: |-
+            auto values = id(relay_1_color_light).current_values;
+            id(relay_1_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_1_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_1_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
 
-  # ── Relay indicator lights ───────────────────────────────────────────────
-  # EU physical LED map (firmware index 0-27):
-  #   Top    : 20,21,22,23,24,25,26  (left→right)
-  #   Right  : 13,14,15,16,17,18,19  (top→bottom)  ← board labels 20-14
-  #   Bottom : 12,11,10,9,8,7,6      (left→right)  ← board labels 13-7
-  #   Left   : 27,0,1,2,3,4,5        (top→bottom)  ← board labels 28,1-6
-  #
-  # 2-gang split: relay 1 = left half, relay 2 = right half
-  #   Relay 1 half: top 20-23 | right-side 13-19 | bottom 9-12
-  #   Relay 2 half: top 24-26 | left-side 27+0-5 | bottom 6-8
-  #
-  # The select options control which section of that half lights up:
-  #   Bottom = bottom strip only
-  #   Top    = top strip only
-  #   Side   = the vertical side strip only (right for relay1, left for relay2)
-  #   Both   = top + bottom (original behaviour)
-  #   All    = top + side + bottom (full half perimeter)
+  - id: relay_2_color_light
+    name: Relay 2 color
+    platform: rgb
+    red: relay_2_color_output_r
+    green: relay_2_color_output_g
+    blue: relay_2_color_output_b
+    internal: ${gang_count < 2}
+    disabled_by_default: false
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    <<: *relay_color_picker
+    on_turn_on:
+      then:
+        - lambda: |-
+            auto values = id(relay_2_color_light).current_values;
+            id(relay_2_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_2_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_2_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
+            show_relay_status->execute();
+    on_state:
+      then:
+        - lambda: |-
+            auto values = id(relay_2_color_light).current_values;
+            id(relay_2_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_2_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_2_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
 
+  - id: relay_3_color_light
+    name: Relay 3 color
+    platform: rgb
+    red: relay_3_color_output_r
+    green: relay_3_color_output_g
+    blue: relay_3_color_output_b
+    internal: ${gang_count < 3}
+    disabled_by_default: false
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    <<: *relay_color_picker
+    on_turn_on:
+      then:
+        - lambda: |-
+            auto values = id(relay_3_color_light).current_values;
+            id(relay_3_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_3_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_3_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
+            show_relay_status->execute();
+    on_state:
+      then:
+        - lambda: |-
+            auto values = id(relay_3_color_light).current_values;
+            id(relay_3_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_3_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_3_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
+
+  - id: relay_4_color_light
+    name: Relay 4 color
+    platform: rgb
+    red: relay_4_color_output_r
+    green: relay_4_color_output_g
+    blue: relay_4_color_output_b
+    internal: ${gang_count < 4}
+    disabled_by_default: false
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    <<: *relay_color_picker
+    on_turn_on:
+      then:
+        - lambda: |-
+            auto values = id(relay_4_color_light).current_values;
+            id(relay_4_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_4_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_4_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
+            show_relay_status->execute();
+    on_state:
+      then:
+        - lambda: |-
+            auto values = id(relay_4_color_light).current_values;
+            id(relay_4_color_r) = (uint8_t)(values.get_red()   * values.get_brightness() * 255);
+            id(relay_4_color_g) = (uint8_t)(values.get_green() * values.get_brightness() * 255);
+            id(relay_4_color_b) = (uint8_t)(values.get_blue()  * values.get_brightness() * 255);
+
+  # ── Relay indicator light partitions (all internal, not exposed to HA) ───
   - &light_partition_relays
-    id: light_rl_1_1_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 1 of 1 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
+    id: light_rl_1_1_Bottom
+    name: Light - Relay 1 of 1 (Bottom)
     platform: partition
     internal: true
     disabled_by_default: false
     default_transition_length: ${default_transition_length}
-    restore_mode: ${RELAYS_LIGHT_PARTITION_RESTORE_MODE}
+    restore_mode: RESTORE_DEFAULT_OFF
     segments:
       - id: light_full
         from: ${6 if IS_EU_MODEL else 9}
@@ -201,8 +325,8 @@ light:
         from: 13
         to: 19
 
-  # 2-gang — relay 1 (left half)
-  - id: light_rl_1_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 2-gang relay 1 (left)
+  - id: light_rl_1_2_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -224,8 +348,8 @@ light:
         from: ${13 if IS_EU_MODEL else 15}
         to: ${19 if IS_EU_MODEL else 19}
 
-  # 2-gang — relay 2 (right half)
-  - id: light_rl_2_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 2-gang relay 2 (right)
+  - id: light_rl_2_2_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -250,8 +374,8 @@ light:
         from: 0
         to: ${5 if IS_EU_MODEL else 8}
 
-  # 3-gang — relay 1 (left third)
-  - id: light_rl_1_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 3-gang relay 1
+  - id: light_rl_1_3_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -273,8 +397,8 @@ light:
         from: ${17 if IS_EU_MODEL else 21}
         to: ${19 if IS_EU_MODEL else 24}
 
-  # 3-gang — relay 2 (middle third)
-  - id: light_rl_2_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 3-gang relay 2
+  - id: light_rl_2_3_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -296,8 +420,8 @@ light:
         from: ${14 if IS_EU_MODEL else 18}
         to: ${16 if IS_EU_MODEL else 20}
 
-  # 3-gang — relay 3 (right third)
-  - id: light_rl_3_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 3-gang relay 3
+  - id: light_rl_3_3_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -322,8 +446,8 @@ light:
         from: 0
         to: ${2 if IS_EU_MODEL else 3}
 
-  # 4-gang — relay 1
-  - id: light_rl_1_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 4-gang relay 1
+  - id: light_rl_1_4_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -345,8 +469,8 @@ light:
         from: ${18 if IS_EU_MODEL else 22}
         to: ${19 if IS_EU_MODEL else 24}
 
-  # 4-gang — relay 2
-  - id: light_rl_2_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 4-gang relay 2
+  - id: light_rl_2_4_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -368,8 +492,8 @@ light:
         from: ${15 if IS_EU_MODEL else 19}
         to: ${17 if IS_EU_MODEL else 21}
 
-  # 4-gang — relay 3
-  - id: light_rl_3_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 4-gang relay 3
+  - id: light_rl_3_4_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -394,8 +518,8 @@ light:
         from: ${27 if IS_EU_MODEL else 31}
         to: ${27 if IS_EU_MODEL else 31}
 
-  # 4-gang — relay 4
-  - id: light_rl_4_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
+  # 4-gang relay 4
+  - id: light_rl_4_4_Bottom
     internal: true
     <<: *light_partition_relays
     segments:
@@ -417,6 +541,7 @@ light:
         from: 0
         to: ${2 if IS_EU_MODEL else 3}
 
+# ── Dummy outputs for the color picker RGB lights ────────────────────────────
 output:
   - id: output_relay_1
     platform: gpio
@@ -430,6 +555,35 @@ output:
   - id: output_relay_4
     platform: gpio
     pin: GPIO23
+
+  - &dummy_output
+    id: relay_1_color_output_r
+    platform: template
+    type: float
+    write_action:
+      - lambda: return;
+  - id: relay_1_color_output_g
+    <<: *dummy_output
+  - id: relay_1_color_output_b
+    <<: *dummy_output
+  - id: relay_2_color_output_r
+    <<: *dummy_output
+  - id: relay_2_color_output_g
+    <<: *dummy_output
+  - id: relay_2_color_output_b
+    <<: *dummy_output
+  - id: relay_3_color_output_r
+    <<: *dummy_output
+  - id: relay_3_color_output_g
+    <<: *dummy_output
+  - id: relay_3_color_output_b
+    <<: *dummy_output
+  - id: relay_4_color_output_r
+    <<: *dummy_output
+  - id: relay_4_color_output_g
+    <<: *dummy_output
+  - id: relay_4_color_output_b
+    <<: *dummy_output
 
 script:
   - id: !extend boot_initialize
@@ -458,57 +612,34 @@ script:
     mode: restart
     then:
       - lambda: |-
-          // gb_lights_1 = Bottom strip per relay
-          // gb_lights_2 = Top strip per relay
-          // gb_lights_3 = Side strip per relay
           #if defined(TX_ULTIMATE_EASY_GANG_COUNT) && (TX_ULTIMATE_EASY_GANG_COUNT == 1)
-          id(gb_lights_1) = { light_rl_1_1_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
+          id(gb_lights_1) = { light_rl_1_1_Bottom };
           id(gb_lights_2) = { light_rl_1_1_Top };
           id(gb_lights_3) = { light_rl_1_1_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 2)
-          id(gb_lights_1) = { light_rl_1_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_2_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_2_Top,
-                              light_rl_2_2_Top };
-          id(gb_lights_3) = { light_rl_1_2_Side,
-                              light_rl_2_2_Side };
+          id(gb_lights_1) = { light_rl_1_2_Bottom, light_rl_2_2_Bottom };
+          id(gb_lights_2) = { light_rl_1_2_Top,    light_rl_2_2_Top };
+          id(gb_lights_3) = { light_rl_1_2_Side,   light_rl_2_2_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 3)
-          id(gb_lights_1) = { light_rl_1_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_2_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_3_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_3_Top,
-                              light_rl_2_3_Top,
-                              light_rl_3_3_Top };
-          id(gb_lights_3) = { light_rl_1_3_Side,
-                              light_rl_2_3_Side,
-                              light_rl_3_3_Side };
+          id(gb_lights_1) = { light_rl_1_3_Bottom, light_rl_2_3_Bottom, light_rl_3_3_Bottom };
+          id(gb_lights_2) = { light_rl_1_3_Top,    light_rl_2_3_Top,    light_rl_3_3_Top };
+          id(gb_lights_3) = { light_rl_1_3_Side,   light_rl_2_3_Side,   light_rl_3_3_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 4)
-          id(gb_lights_1) = { light_rl_1_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_2_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_3_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_4_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_4_Top,
-                              light_rl_2_4_Top,
-                              light_rl_3_4_Top,
-                              light_rl_4_4_Top };
-          id(gb_lights_3) = { light_rl_1_4_Side,
-                              light_rl_2_4_Side,
-                              light_rl_3_4_Side,
-                              light_rl_4_4_Side };
+          id(gb_lights_1) = { light_rl_1_4_Bottom, light_rl_2_4_Bottom, light_rl_3_4_Bottom, light_rl_4_4_Bottom };
+          id(gb_lights_2) = { light_rl_1_4_Top,    light_rl_2_4_Top,    light_rl_3_4_Top,    light_rl_4_4_Top };
+          id(gb_lights_3) = { light_rl_1_4_Side,   light_rl_2_4_Side,   light_rl_3_4_Side,   light_rl_4_4_Side };
           #endif
           id(boot_initialization_relays_group_assignments) = true;
 
   - id: boot_initialize_relays_light_modes
     mode: restart
     then:
-      - lambda: |-
-          id(boot_initialization_relays_light_modes) = true;
+      - lambda: id(boot_initialization_relays_light_modes) = true;
 
   - id: boot_initialize_relays_relay_modes
     mode: restart
     then:
-      - lambda: |-
-          id(boot_initialization_relays_relay_modes) = true;
+      - lambda: id(boot_initialization_relays_relay_modes) = true;
 
   - id: !extend button_click_event
     then:
@@ -524,26 +655,22 @@ script:
           switch (button) {
             case ${BUTTON_1_ID}:
               select_state = sl_button_1_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_1_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_1_ACTION_FAILSAFE_TEXT}"));
+              toggle_relay = (select_state == "${BUTTON_1_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_1_ACTION_FAILSAFE_TEXT}"));
               if (toggle_relay && ${SL_RELAY_1_MODE} != 0) sw_relay_1->toggle();
               break;
             case ${BUTTON_2_ID}:
               select_state = sl_button_2_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_2_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_2_ACTION_FAILSAFE_TEXT}"));
+              toggle_relay = (select_state == "${BUTTON_2_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_2_ACTION_FAILSAFE_TEXT}"));
               if (toggle_relay && ${SL_RELAY_2_MODE} != 0) sw_relay_2->toggle();
               break;
             case ${BUTTON_3_ID}:
               select_state = sl_button_3_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_3_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_3_ACTION_FAILSAFE_TEXT}"));
+              toggle_relay = (select_state == "${BUTTON_3_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_3_ACTION_FAILSAFE_TEXT}"));
               if (toggle_relay && ${SL_RELAY_3_MODE} != 0) sw_relay_3->toggle();
               break;
             case ${BUTTON_4_ID}:
               select_state = sl_button_4_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_4_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_4_ACTION_FAILSAFE_TEXT}"));
+              toggle_relay = (select_state == "${BUTTON_4_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_4_ACTION_FAILSAFE_TEXT}"));
               if (toggle_relay && ${SL_RELAY_4_MODE} != 0) sw_relay_4->toggle();
               break;
           }
@@ -572,29 +699,32 @@ script:
           if (sw_night_mode->state) return;
           #endif
 
-          static const uint32_t LIGHT_TRANSITION_TURN_ON = ${LIGHT_TRANSITION_TURN_ON};
-          static const uint32_t LIGHT_TRANSITION_TURN_OFF = ${LIGHT_TRANSITION_TURN_OFF};
-          static const uint8_t LIGHT_BRIGHTNESS_TURN_ON = ${LIGHT_BRIGHTNESS_TURN_ON};
-
           std::vector<light::LightState*>* group = nullptr;
           if      (light_group == 1) group = &id(gb_lights_1);
           else if (light_group == 2) group = &id(gb_lights_2);
           else if (light_group == 3) group = &id(gb_lights_3);
           else return;
-
           if (light_index >= group->size()) return;
+
+          // Resolve which relay index this light_index corresponds to for color lookup
+          // light_index == relay index (0-based)
+          uint8_t r = 255, g = 255, b = 255;
+          switch (light_index) {
+            case 0: r = id(relay_1_color_r); g = id(relay_1_color_g); b = id(relay_1_color_b); break;
+            case 1: r = id(relay_2_color_r); g = id(relay_2_color_g); b = id(relay_2_color_b); break;
+            case 2: r = id(relay_3_color_r); g = id(relay_3_color_g); b = id(relay_3_color_b); break;
+            case 3: r = id(relay_4_color_r); g = id(relay_4_color_g); b = id(relay_4_color_b); break;
+          }
 
           if (state) {
             auto call = (*group)[light_index]->turn_on();
-            if (LIGHT_TRANSITION_TURN_ON > 0)
-              call.set_transition_length(LIGHT_TRANSITION_TURN_ON);
-            if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
-              call.set_brightness(LIGHT_BRIGHTNESS_TURN_ON / 100.0f);
+            call.set_rgb(r / 255.0f, g / 255.0f, b / 255.0f);
+            call.set_brightness(1.0f);
+            call.set_transition_length(0);
             call.perform();
           } else {
             auto call = (*group)[light_index]->turn_off();
-            if (LIGHT_TRANSITION_TURN_OFF > 0)
-              call.set_transition_length(LIGHT_TRANSITION_TURN_OFF);
+            call.set_transition_length(0);
             call.perform();
           }
 
@@ -604,135 +734,23 @@ script:
       - script.wait: boot_initialize_relays
       - lambda: |-
           if (not id(boot_initialization_relays)) {
-            if (not boot_initialize_relays->is_running())
-              boot_initialize_relays->execute();
+            if (not boot_initialize_relays->is_running()) boot_initialize_relays->execute();
             return;
           }
           for (uint8_t i = 0; i < ${gang_count}; i++) {
             bool relay_state = false;
-            std::string light_mode;
+            bool leds_enabled = false;
             switch (i) {
-              case 0: relay_state = id(relay_1_state); light_mode = sl_relay_1_light_mode->current_option(); break;
-              case 1: relay_state = id(relay_2_state); light_mode = sl_relay_2_light_mode->current_option(); break;
-              case 2: relay_state = id(relay_3_state); light_mode = sl_relay_3_light_mode->current_option(); break;
-              case 3: relay_state = id(relay_4_state); light_mode = sl_relay_4_light_mode->current_option(); break;
+              case 0: relay_state = id(relay_1_state); leds_enabled = sw_relay_1_leds->state; break;
+              case 1: relay_state = id(relay_2_state); leds_enabled = sw_relay_2_leds->state; break;
+              case 2: relay_state = id(relay_3_state); leds_enabled = sw_relay_3_leds->state; break;
+              case 3: relay_state = id(relay_4_state); leds_enabled = sw_relay_4_leds->state; break;
             }
-            if (light_mode == "${LIGHT_MODE_DISABLED_TEXT}") continue;
-
-            bool do_bottom = (light_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || light_mode == "${LIGHT_MODE_BOTH_TEXT}" || light_mode == "All");
-            bool do_top    = (light_mode == "Top"                               || light_mode == "${LIGHT_MODE_BOTH_TEXT}" || light_mode == "All");
-            bool do_side   = (light_mode == "Side"                              || light_mode == "All");
-
-            if (do_bottom) light_set_state->execute(1, i, relay_state);
-            if (do_top)    light_set_state->execute(2, i, relay_state);
-            if (do_side)   light_set_state->execute(3, i, relay_state);
+            bool on = relay_state && leds_enabled;
+            light_set_state->execute(1, i, on);
+            light_set_state->execute(2, i, on);
+            light_set_state->execute(3, i, on);
           }
-
-select:
-  - &relay_light_mode
-    id: sl_relay_1_light_mode
-    name: Relay 1 light mode
-    platform: template
-    options:
-      - "${LIGHT_MODE_DISABLED_TEXT}"
-      - "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}"
-      - "Top"
-      - "Side"
-      - "${LIGHT_MODE_BOTH_TEXT}"
-      - "All"
-    initial_option: "All"
-    optimistic: true
-    restore_value: ${gang_count >= 1}
-    internal: ${gang_count < 1}
-    entity_category: config
-    disabled_by_default: false
-    icon: mdi:dots-square
-    on_value:
-      - lambda: |-
-          if (!id(bs_boot_completed)->state) return;
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-          if (previous_mode.empty()) { previous_mode = current_mode; return; }
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            id(light_set_state)->execute(1, 0, false);
-            id(light_set_state)->execute(2, 0, false);
-            id(light_set_state)->execute(3, 0, false);
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            bool rs = id(relay_1_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(1, 0, rs);
-            if (current_mode == "Top"  || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(2, 0, rs);
-            if (current_mode == "Side" || current_mode == "All") id(light_set_state)->execute(3, 0, rs);
-          }
-          previous_mode = current_mode;
-
-  - id: sl_relay_2_light_mode
-    name: Relay 2 light mode
-    restore_value: ${gang_count >= 2}
-    internal: ${gang_count < 2}
-    <<: *relay_light_mode
-    on_value:
-      - lambda: |-
-          if (!id(bs_boot_completed)->state) return;
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-          if (previous_mode.empty()) { previous_mode = current_mode; return; }
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            id(light_set_state)->execute(1, 1, false);
-            id(light_set_state)->execute(2, 1, false);
-            id(light_set_state)->execute(3, 1, false);
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            bool rs = id(relay_2_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(1, 1, rs);
-            if (current_mode == "Top"  || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(2, 1, rs);
-            if (current_mode == "Side" || current_mode == "All") id(light_set_state)->execute(3, 1, rs);
-          }
-          previous_mode = current_mode;
-
-  - id: sl_relay_3_light_mode
-    name: Relay 3 light mode
-    restore_value: ${gang_count >= 3}
-    internal: ${gang_count < 3}
-    <<: *relay_light_mode
-    on_value:
-      - lambda: |-
-          if (!id(bs_boot_completed)->state) return;
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-          if (previous_mode.empty()) { previous_mode = current_mode; return; }
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            id(light_set_state)->execute(1, 2, false);
-            id(light_set_state)->execute(2, 2, false);
-            id(light_set_state)->execute(3, 2, false);
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            bool rs = id(relay_3_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(1, 2, rs);
-            if (current_mode == "Top"  || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(2, 2, rs);
-            if (current_mode == "Side" || current_mode == "All") id(light_set_state)->execute(3, 2, rs);
-          }
-          previous_mode = current_mode;
-
-  - id: sl_relay_4_light_mode
-    name: Relay 4 light mode
-    restore_value: ${gang_count >= 4}
-    internal: ${gang_count < 4}
-    <<: *relay_light_mode
-    on_value:
-      - lambda: |-
-          if (!id(bs_boot_completed)->state) return;
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-          if (previous_mode.empty()) { previous_mode = current_mode; return; }
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            id(light_set_state)->execute(1, 3, false);
-            id(light_set_state)->execute(2, 3, false);
-            id(light_set_state)->execute(3, 3, false);
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            bool rs = id(relay_4_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(1, 3, rs);
-            if (current_mode == "Top"  || current_mode == "${LIGHT_MODE_BOTH_TEXT}" || current_mode == "All") id(light_set_state)->execute(2, 3, rs);
-            if (current_mode == "Side" || current_mode == "All") id(light_set_state)->execute(3, 3, rs);
-          }
-          previous_mode = current_mode;
 
 switch:
   - id: sw_relay_1
@@ -786,4 +804,58 @@ switch:
     turn_off_action:
       - lambda: id(relay_4_state) = false;
       - light.turn_off: light_output_4
+
+  # ── LED enable switches (replaces the old light mode select) ─────────────
+  - &relay_led_switch
+    id: sw_relay_1_leds
+    name: Relay 1 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    internal: ${gang_count < 1}
+    lambda: return true;
+    turn_on_action:
+      - lambda: show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          light_set_state->execute(1, 0, false);
+          light_set_state->execute(2, 0, false);
+          light_set_state->execute(3, 0, false);
+
+  - id: sw_relay_2_leds
+    name: Relay 2 LEDs
+    internal: ${gang_count < 2}
+    <<: *relay_led_switch
+    turn_on_action:
+      - lambda: show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          light_set_state->execute(1, 1, false);
+          light_set_state->execute(2, 1, false);
+          light_set_state->execute(3, 1, false);
+
+  - id: sw_relay_3_leds
+    name: Relay 3 LEDs
+    internal: ${gang_count < 3}
+    <<: *relay_led_switch
+    turn_on_action:
+      - lambda: show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          light_set_state->execute(1, 2, false);
+          light_set_state->execute(2, 2, false);
+          light_set_state->execute(3, 2, false);
+
+  - id: sw_relay_4_leds
+    name: Relay 4 LEDs
+    internal: ${gang_count < 4}
+    <<: *relay_led_switch
+    turn_on_action:
+      - lambda: show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          light_set_state->execute(1, 3, false);
+          light_set_state->execute(2, 3, false);
+          light_set_state->execute(3, 3, false);
 ...
