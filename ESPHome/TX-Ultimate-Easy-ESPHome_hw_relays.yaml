@@ -181,9 +181,22 @@ light:
       then:
         - lambda: id(relay_3_state) = true; show_relay_status->execute();
     on_turn_off:
+      then:
+        - lambda: id(relay_3_state) = false; show_relay_status->execute();
+  - id: light_output_4
+    name: Light output 4
+    output: output_relay_4
+    platform: binary
+    internal: ${SL_RELAY_4_MODE != 2 or gang_count < 4}
+    restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
+    on_turn_on:
+      then:
+        - lambda: id(relay_4_state) = true; show_relay_status->execute();
+    on_turn_off:
+      then:
+        - lambda: id(relay_4_state) = false; show_relay_status->execute();
 
   # ── Relay indicator light partitions (all internal) ──────────────────────
-  # ── Relay indicator light partitions (all internal, not exposed to HA) ───
   - &light_partition_relays
     id: light_rl_1_1_Bottom
     name: Light - Relay 1 of 1 (Bottom)
