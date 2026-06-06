@@ -20,6 +20,8 @@ substitutions:
   LIGHT_MODE_RIGHT_TEXT: "Right"
   LIGHT_MODE_BOTTOM_TEXT: "Bottom"
   LIGHT_MODE_TOP_TEXT: "Top"
+  LIGHT_MODE_MIDDLE_TEXT: "Middle"
+  LIGHT_MODE_ALL_TEXT: "All"
   LIGHT_MODE_BOTTOM_OR_LEFT_TEXT: ${LIGHT_MODE_BOTTOM_TEXT if IS_EU_MODEL else LIGHT_MODE_LEFT_TEXT}
   LIGHT_MODE_TOP_OR_RIGHT_TEXT: ${LIGHT_MODE_TOP_TEXT if IS_EU_MODEL else LIGHT_MODE_RIGHT_TEXT}
 
@@ -53,9 +55,6 @@ light:
     chipset: ws2812
     max_refresh_rate: 33ms
     use_psram: false
-    # platform: neopixelbus
-    # type: GRB
-    # variant: WS2811
 
   # Those lights are available based on the model selections
   - &light_partition_with_effects
@@ -184,6 +183,110 @@ light:
         from: ${20 if IS_EU_MODEL else 25}
         to: ${26 if IS_EU_MODEL else 30}
         reversed: false
+
+  # ── Middle relay indicator lights (left/vertical strip) ──────────────────
+  # EU LED map: bottom=6-12, left(middle)=13-19, top=20-26, right=27+0-5
+  # 1-gang: full middle strip
+  - &light_partition_relays_middle
+    id: light_rl_1_1_Middle
+    name: Light - Relay 1 of 1 (Middle)
+    platform: partition
+    disabled_by_default: false
+    default_transition_length: ${default_transition_length}
+    restore_mode: RESTORE_DEFAULT_OFF
+    internal: ${gang_count != 1}
+    segments:
+      - id: light_full
+        from: ${13 if IS_EU_MODEL else 15}
+        to: ${19 if IS_EU_MODEL else 24}
+        reversed: true
+
+  # 2-gang: relay 1 = lower half of left strip, relay 2 = upper half
+  - id: light_rl_1_2_Middle
+    name: Light - Relay 1 of 2 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 2}
+    segments:
+      - id: light_full
+        from: ${16 if IS_EU_MODEL else 20}
+        to: ${19 if IS_EU_MODEL else 24}
+        reversed: true
+  - id: light_rl_2_2_Middle
+    name: Light - Relay 2 of 2 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 2}
+    segments:
+      - id: light_full
+        from: ${13 if IS_EU_MODEL else 15}
+        to: ${15 if IS_EU_MODEL else 19}
+        reversed: true
+
+  # 3-gang: split left strip into thirds
+  - id: light_rl_1_3_Middle
+    name: Light - Relay 1 of 3 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 3}
+    segments:
+      - id: light_full
+        from: ${18 if IS_EU_MODEL else 22}
+        to: ${19 if IS_EU_MODEL else 24}
+        reversed: true
+  - id: light_rl_2_3_Middle
+    name: Light - Relay 2 of 3 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 3}
+    segments:
+      - id: light_full
+        from: ${15 if IS_EU_MODEL else 18}
+        to: ${17 if IS_EU_MODEL else 21}
+        reversed: true
+  - id: light_rl_3_3_Middle
+    name: Light - Relay 3 of 3 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 3}
+    segments:
+      - id: light_full
+        from: ${13 if IS_EU_MODEL else 15}
+        to: ${14 if IS_EU_MODEL else 17}
+        reversed: true
+
+  # 4-gang: split left strip into quarters
+  - id: light_rl_1_4_Middle
+    name: Light - Relay 1 of 4 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 4}
+    segments:
+      - id: light_full
+        from: ${18 if IS_EU_MODEL else 21}
+        to: ${19 if IS_EU_MODEL else 24}
+        reversed: true
+  - id: light_rl_2_4_Middle
+    name: Light - Relay 2 of 4 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 4}
+    segments:
+      - id: light_full
+        from: ${16 if IS_EU_MODEL else 18}
+        to: ${17 if IS_EU_MODEL else 20}
+        reversed: true
+  - id: light_rl_3_4_Middle
+    name: Light - Relay 3 of 4 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 4}
+    segments:
+      - id: light_full
+        from: ${14 if IS_EU_MODEL else 15}
+        to: ${15 if IS_EU_MODEL else 17}
+        reversed: true
+  - id: light_rl_4_4_Middle
+    name: Light - Relay 4 of 4 (Middle)
+    <<: *light_partition_relays_middle
+    internal: ${gang_count != 4}
+    segments:
+      - id: light_full
+        from: ${13 if IS_EU_MODEL else 15}
+        to: ${13 if IS_EU_MODEL else 15}
+        reversed: true
 
 script:
   - id: !extend dump_config
