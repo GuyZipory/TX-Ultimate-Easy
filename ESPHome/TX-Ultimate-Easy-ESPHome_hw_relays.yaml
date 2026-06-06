@@ -128,6 +128,24 @@ globals:
     restore_value: true
     initial_value: '255'
 
+  # LED enable state per relay (persisted)
+  - id: sw_relay_1_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+  - id: sw_relay_2_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+  - id: sw_relay_3_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+  - id: sw_relay_4_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+
 light:
   - id: light_output_1
     name: Light output 1
@@ -181,8 +199,9 @@ light:
   # ── Color pickers — one per relay, exposed to HA so you can set the color ──
   # These are configuration-only lights. Turning them on/off here does nothing
   # to the relay; they just store the color that will be used when the relay is on.
-  - &relay_color_picker
-    id: relay_1_color_light
+
+  # ── Color pickers — one per relay, exposed to HA so you can set the color ──
+  - id: relay_1_color_light
     name: Relay 1 color
     platform: rgb
     red: relay_1_color_output_r
@@ -218,7 +237,6 @@ light:
     disabled_by_default: false
     entity_category: config
     restore_mode: RESTORE_DEFAULT_ON
-    <<: *relay_color_picker
     on_turn_on:
       then:
         - lambda: |-
@@ -245,7 +263,6 @@ light:
     disabled_by_default: false
     entity_category: config
     restore_mode: RESTORE_DEFAULT_ON
-    <<: *relay_color_picker
     on_turn_on:
       then:
         - lambda: |-
@@ -272,7 +289,6 @@ light:
     disabled_by_default: false
     entity_category: config
     restore_mode: RESTORE_DEFAULT_ON
-    <<: *relay_color_picker
     on_turn_on:
       then:
         - lambda: |-
@@ -741,10 +757,10 @@ script:
             bool relay_state = false;
             bool leds_enabled = false;
             switch (i) {
-              case 0: relay_state = id(relay_1_state); leds_enabled = sw_relay_1_leds->state; break;
-              case 1: relay_state = id(relay_2_state); leds_enabled = sw_relay_2_leds->state; break;
-              case 2: relay_state = id(relay_3_state); leds_enabled = sw_relay_3_leds->state; break;
-              case 3: relay_state = id(relay_4_state); leds_enabled = sw_relay_4_leds->state; break;
+              case 0: relay_state = id(relay_1_state); leds_enabled = id(sw_relay_1_leds_state); break;
+              case 1: relay_state = id(relay_2_state); leds_enabled = id(sw_relay_2_leds_state); break;
+              case 2: relay_state = id(relay_3_state); leds_enabled = id(sw_relay_3_leds_state); break;
+              case 3: relay_state = id(relay_4_state); leds_enabled = id(sw_relay_4_leds_state); break;
             }
             bool on = relay_state && leds_enabled;
             light_set_state->execute(1, i, on);
@@ -805,56 +821,84 @@ switch:
       - lambda: id(relay_4_state) = false;
       - light.turn_off: light_output_4
 
-  # ── LED enable switches (replaces the old light mode select) ─────────────
-  - &relay_led_switch
-    id: sw_relay_1_leds
+
+  # ── LED enable switches (one per relay, toggle LEDs on/off) ──────────────
+  - id: sw_relay_1_leds
     name: Relay 1 LEDs
     icon: mdi:led-on
     platform: template
     restore_mode: RESTORE_DEFAULT_ON
     entity_category: config
     internal: ${gang_count < 1}
-    lambda: return true;
+    lambda: |-
+      return id(sw_relay_1_leds_state);
     turn_on_action:
-      - lambda: show_relay_status->execute();
+      - lambda: |-
+          id(sw_relay_1_leds_state) = true;
+          show_relay_status->execute();
     turn_off_action:
       - lambda: |-
+          id(sw_relay_1_leds_state) = false;
           light_set_state->execute(1, 0, false);
           light_set_state->execute(2, 0, false);
           light_set_state->execute(3, 0, false);
 
   - id: sw_relay_2_leds
     name: Relay 2 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
     internal: ${gang_count < 2}
-    <<: *relay_led_switch
+    lambda: |-
+      return id(sw_relay_2_leds_state);
     turn_on_action:
-      - lambda: show_relay_status->execute();
+      - lambda: |-
+          id(sw_relay_2_leds_state) = true;
+          show_relay_status->execute();
     turn_off_action:
       - lambda: |-
+          id(sw_relay_2_leds_state) = false;
           light_set_state->execute(1, 1, false);
           light_set_state->execute(2, 1, false);
           light_set_state->execute(3, 1, false);
 
   - id: sw_relay_3_leds
     name: Relay 3 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
     internal: ${gang_count < 3}
-    <<: *relay_led_switch
+    lambda: |-
+      return id(sw_relay_3_leds_state);
     turn_on_action:
-      - lambda: show_relay_status->execute();
+      - lambda: |-
+          id(sw_relay_3_leds_state) = true;
+          show_relay_status->execute();
     turn_off_action:
       - lambda: |-
+          id(sw_relay_3_leds_state) = false;
           light_set_state->execute(1, 2, false);
           light_set_state->execute(2, 2, false);
           light_set_state->execute(3, 2, false);
 
   - id: sw_relay_4_leds
     name: Relay 4 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
     internal: ${gang_count < 4}
-    <<: *relay_led_switch
+    lambda: |-
+      return id(sw_relay_4_leds_state);
     turn_on_action:
-      - lambda: show_relay_status->execute();
+      - lambda: |-
+          id(sw_relay_4_leds_state) = true;
+          show_relay_status->execute();
     turn_off_action:
       - lambda: |-
+          id(sw_relay_4_leds_state) = false;
           light_set_state->execute(1, 3, false);
           light_set_state->execute(2, 3, false);
           light_set_state->execute(3, 3, false);
