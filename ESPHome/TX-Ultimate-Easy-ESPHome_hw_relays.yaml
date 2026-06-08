@@ -2,22 +2,16 @@
 #####                              TX Ultimate Easy for ESPHome                                #####
 #####                  Repository: https://github.com/edwardtfn/TX-Ultimate-Easy               #####
 ####################################################################################################
-##### Purpose: ESPHome - Hardware - Relays                                                     #####
-####################################################################################################
-##### Author: edwardtfn - https://github.com/edwardtfn - https://buymeacoffee.com/edwardfirmo  #####
-####################################################################################################
-##### NOTE:                                                                                    #####
-##### - Make changes ONLY if absolutely necessary and you have the required knowledge.         #####
-##### - For normal system use, modifications to this file are NOT required.                    #####
+##### Purpose: ESPHome - Hardware - Relays (forked: full-side LEDs + color persistence)       #####
 ####################################################################################################
 ---
 substitutions:
   expose_relays_leds_to_ha: false
 
-  relay_1_mode: switch  # 'switch', 'light', or 'disabled'
-  relay_2_mode: switch  # 'switch', 'light', or 'disabled'
-  relay_3_mode: switch  # 'switch', 'light', or 'disabled'
-  relay_4_mode: switch  # 'switch', 'light', or 'disabled'
+  relay_1_mode: switch
+  relay_2_mode: switch
+  relay_3_mode: switch
+  relay_4_mode: switch
 
   RELAY_1_MODE_LOWER: ${ relay_1_mode | lower }
   RELAY_2_MODE_LOWER: ${ relay_2_mode | lower }
@@ -33,11 +27,7 @@ substitutions:
   RELAY_MODE_TEXT_LIGHT: "Light"
   RELAY_MODE_TEXT_NOT_USED: "Not in use"
 
-  # You shouldn't change the restore mode as there is a custom restoring engine based on globals.
-  # The reason of a custom engine is to address an issue where NVS space was exceeded causing saving/restoring issues
   RELAYS_LIGHT_RESTORE_MODE: RESTORE_DEFAULT_OFF
-  RELAYS_LIGHT_PARTITION_RESTORE_MODE: RESTORE_DEFAULT_OFF
-  RELAYS_EXPOSE_LEDS_TO_HA_RESTORE_MODE: RESTORE_DEFAULT_OFF
   RELAYS_SWITCH_RESTORE_MODE: RESTORE_DEFAULT_OFF
 
   TAG_HW_RELAYS: tx_ultimate_easy.hw.relays
@@ -71,6 +61,9 @@ globals:
   - id: gb_lights_2
     type: std::vector<light::LightState*>
     restore_value: false
+  - id: gb_lights_3
+    type: std::vector<light::LightState*>
+    restore_value: false
 
   - id: relay_1_state
     type: bool
@@ -85,8 +78,75 @@ globals:
     type: bool
     initial_value: 'false'
 
+  # Stored colors per relay (RGB 0-255), persisted across reboots
+  - id: relay_1_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_1_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_1_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_2_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_2_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_2_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_3_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_3_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_3_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_4_color_r
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_4_color_g
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+  - id: relay_4_color_b
+    type: uint8_t
+    restore_value: true
+    initial_value: '255'
+
+  # LED enable state per relay (persisted)
+  - id: sw_relay_1_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+  - id: sw_relay_2_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+  - id: sw_relay_3_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+  - id: sw_relay_4_leds_state
+    type: bool
+    restore_value: true
+    initial_value: 'true'
+
 light:
-  # These lights are used for the physical relays to be shown as lights
   - id: light_output_1
     name: Light output 1
     output: output_relay_1
@@ -95,14 +155,10 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_1_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_1_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_1_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_1_state) = false; show_relay_status->execute();
   - id: light_output_2
     name: Light output 2
     output: output_relay_2
@@ -111,14 +167,10 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_2_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_2_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_2_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_2_state) = false; show_relay_status->execute();
   - id: light_output_3
     name: Light output 3
     output: output_relay_3
@@ -127,14 +179,10 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_3_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_3_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_3_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_3_state) = false; show_relay_status->execute();
   - id: light_output_4
     name: Light output 4
     output: output_relay_4
@@ -143,189 +191,293 @@ light:
     restore_mode: ${RELAYS_LIGHT_RESTORE_MODE}
     on_turn_on:
       then:
-        - lambda: |-
-            id(relay_4_state) = true;
-            show_relay_status->execute();
+        - lambda: id(relay_4_state) = true; show_relay_status->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            id(relay_4_state) = false;
-            show_relay_status->execute();
+        - lambda: id(relay_4_state) = false; show_relay_status->execute();
 
-  # These lights are used to indicate relay's statuses
+  # ── Relay indicator light partitions (all internal) ──────────────────────
   - &light_partition_relays
-    id: light_rl_1_1_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 1 of 1 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
+    id: light_rl_1_1_Bottom
+    name: Light - Relay 1 of 1 (Bottom)
     platform: partition
-    internal: ${not expose_relays_leds_to_ha or gang_count != 1}
+    internal: true
     disabled_by_default: false
     default_transition_length: ${default_transition_length}
-    restore_mode: ${RELAYS_LIGHT_PARTITION_RESTORE_MODE}
+    restore_mode: RESTORE_DEFAULT_OFF
     segments:
       - id: light_full
-        from: ${9 if IS_EU_MODEL else 15}
-        to: ${9 if IS_EU_MODEL else 24}
-  - id: light_rl_1_1_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 1 of 1 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 1}
+        from: ${6 if IS_EU_MODEL else 9}
+        to: ${12 if IS_EU_MODEL else 14}
+
+  # 1-gang
+  - id: light_rl_1_1_Top
+    name: "Light - Relay 1 of 1 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${23 if IS_EU_MODEL else 31}
-        to: ${23 if IS_EU_MODEL else 31}
-      - id: light_full
-        from: ${23 if IS_EU_MODEL else 0}
-        to: ${23 if IS_EU_MODEL else 8}
-  - id: light_rl_1_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 1 of 2 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 2}
+        from: 20
+        to: 26
+  - id: light_rl_1_1_Side
+    name: "Light - Relay 1 of 1 (Side)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${11 if IS_EU_MODEL else 20}
-        to: ${11 if IS_EU_MODEL else 24}
-  - id: light_rl_1_2_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 1 of 2 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 2}
+        from: 27
+        to: 27
+      - id: light_full
+        from: 0
+        to: 5
+      - id: light_full
+        from: 13
+        to: 19
+
+  # 2-gang relay 1 (left)
+  - id: light_rl_1_2_Bottom
+    name: "Light - Relay 1 of 2 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${21 if IS_EU_MODEL else 31}
-        to: ${21 if IS_EU_MODEL else 31}
-      - id: light_full
-        from: ${21 if IS_EU_MODEL else 0}
-        to: ${21 if IS_EU_MODEL else 3}
-  - id: light_rl_2_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 2 of 2 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 2}
+        from: ${9 if IS_EU_MODEL else 20}
+        to: ${12 if IS_EU_MODEL else 24}
+  - id: light_rl_1_2_Top
+    name: "Light - Relay 1 of 2 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${7 if IS_EU_MODEL else 15}
-        to: ${7 if IS_EU_MODEL else 19}
-  - id: light_rl_2_2_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 2 of 2 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 2}
+        from: ${20 if IS_EU_MODEL else 25}
+        to: ${23 if IS_EU_MODEL else 28}
+  - id: light_rl_1_2_Side
+    name: "Light - Relay 1 of 2 (Side)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${25 if IS_EU_MODEL else 4}
-        to: ${25 if IS_EU_MODEL else 8}
-  - id: light_rl_1_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 1 of 3 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 3}
+        from: ${13 if IS_EU_MODEL else 15}
+        to: ${19 if IS_EU_MODEL else 19}
+
+  # 2-gang relay 2 (right)
+  - id: light_rl_2_2_Bottom
+    name: "Light - Relay 2 of 2 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${12 if IS_EU_MODEL else 22}
+        from: ${6 if IS_EU_MODEL else 9}
+        to: ${8 if IS_EU_MODEL else 14}
+  - id: light_rl_2_2_Top
+    name: "Light - Relay 2 of 2 (Top)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${24 if IS_EU_MODEL else 29}
+        to: ${26 if IS_EU_MODEL else 31}
+  - id: light_rl_2_2_Side
+    name: "Light - Relay 2 of 2 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${27 if IS_EU_MODEL else 31}
+        to: ${27 if IS_EU_MODEL else 31}
+      - id: light_full
+        from: 0
+        to: ${5 if IS_EU_MODEL else 8}
+
+  # 3-gang relay 1
+  - id: light_rl_1_3_Bottom
+    name: "Light - Relay 1 of 3 (Bottom)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${11 if IS_EU_MODEL else 22}
         to: ${12 if IS_EU_MODEL else 23}
-  - id: light_rl_1_3_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 1 of 3 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 3}
+  - id: light_rl_1_3_Top
+    name: "Light - Relay 1 of 3 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${20 if IS_EU_MODEL else 0}
-        to: ${20 if IS_EU_MODEL else 1}
-  - id: light_rl_2_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 2 of 3 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 3}
+        from: ${20 if IS_EU_MODEL else 25}
+        to: ${21 if IS_EU_MODEL else 26}
+  - id: light_rl_1_3_Side
+    name: "Light - Relay 1 of 3 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${17 if IS_EU_MODEL else 21}
+        to: ${19 if IS_EU_MODEL else 24}
+
+  # 3-gang relay 2
+  - id: light_rl_2_3_Bottom
+    name: "Light - Relay 2 of 3 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
         from: ${9 if IS_EU_MODEL else 19}
-        to: ${9 if IS_EU_MODEL else 20}
-  - id: light_rl_2_3_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 2 of 3 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 3}
+        to: ${10 if IS_EU_MODEL else 20}
+  - id: light_rl_2_3_Top
+    name: "Light - Relay 2 of 3 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${23 if IS_EU_MODEL else 3}
+        from: ${22 if IS_EU_MODEL else 3}
         to: ${23 if IS_EU_MODEL else 4}
-  - id: light_rl_3_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 3 of 3 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 3}
+  - id: light_rl_2_3_Side
+    name: "Light - Relay 2 of 3 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${14 if IS_EU_MODEL else 18}
+        to: ${16 if IS_EU_MODEL else 20}
+
+  # 3-gang relay 3
+  - id: light_rl_3_3_Bottom
+    name: "Light - Relay 3 of 3 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
         from: ${6 if IS_EU_MODEL else 16}
-        to: ${6 if IS_EU_MODEL else 17}
-  - id: light_rl_3_3_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 3 of 3 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 3}
+        to: ${7 if IS_EU_MODEL else 17}
+  - id: light_rl_3_3_Top
+    name: "Light - Relay 3 of 3 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${26 if IS_EU_MODEL else 6}
+        from: ${25 if IS_EU_MODEL else 6}
         to: ${26 if IS_EU_MODEL else 7}
-  - id: light_rl_1_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 1 of 4 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+  - id: light_rl_3_3_Side
+    name: "Light - Relay 3 of 3 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${27 if IS_EU_MODEL else 31}
+        to: ${27 if IS_EU_MODEL else 31}
+      - id: light_full
+        from: 0
+        to: ${2 if IS_EU_MODEL else 3}
+
+  # 4-gang relay 1
+  - id: light_rl_1_4_Bottom
+    name: "Light - Relay 1 of 4 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
         from: ${12 if IS_EU_MODEL else 23}
         to: ${12 if IS_EU_MODEL else 24}
-  - id: light_rl_1_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 1 of 4 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+  - id: light_rl_1_4_Top
+    name: "Light - Relay 1 of 4 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${20 if IS_EU_MODEL else 31}
-        to: ${20 if IS_EU_MODEL else 31}
+        from: ${20 if IS_EU_MODEL else 25}
+        to: ${20 if IS_EU_MODEL else 26}
+  - id: light_rl_1_4_Side
+    name: "Light - Relay 1 of 4 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
       - id: light_full
-        from: ${20 if IS_EU_MODEL else 0}
-        to: ${20 if IS_EU_MODEL else 0}
-  - id: light_rl_2_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 2 of 4 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+        from: ${18 if IS_EU_MODEL else 22}
+        to: ${19 if IS_EU_MODEL else 24}
+
+  # 4-gang relay 2
+  - id: light_rl_2_4_Bottom
+    name: "Light - Relay 2 of 4 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
         from: ${10 if IS_EU_MODEL else 21}
-        to: ${10 if IS_EU_MODEL else 22}
-  - id: light_rl_2_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 2 of 4 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+        to: ${11 if IS_EU_MODEL else 22}
+  - id: light_rl_2_4_Top
+    name: "Light - Relay 2 of 4 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${22 if IS_EU_MODEL else 1}
+        from: ${21 if IS_EU_MODEL else 1}
         to: ${22 if IS_EU_MODEL else 2}
-  - id: light_rl_3_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 3 of 4 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+  - id: light_rl_2_4_Side
+    name: "Light - Relay 2 of 4 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${15 if IS_EU_MODEL else 19}
+        to: ${17 if IS_EU_MODEL else 21}
+
+  # 4-gang relay 3
+  - id: light_rl_3_4_Bottom
+    name: "Light - Relay 3 of 4 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
         from: ${8 if IS_EU_MODEL else 17}
-        to: ${8 if IS_EU_MODEL else 18}
-  - id: light_rl_3_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    name: Light - Relay 3 of 4 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+        to: ${9 if IS_EU_MODEL else 18}
+  - id: light_rl_3_4_Top
+    name: "Light - Relay 3 of 4 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${24 if IS_EU_MODEL else 5}
+        from: ${23 if IS_EU_MODEL else 5}
         to: ${24 if IS_EU_MODEL else 6}
-  - id: light_rl_4_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
-    name: Light - Relay 4 of 4 (${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT})
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
+  - id: light_rl_3_4_Side
+    name: "Light - Relay 3 of 4 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: ${13 if IS_EU_MODEL else 15}
+        to: ${14 if IS_EU_MODEL else 16}
+      - id: light_full
+        from: ${27 if IS_EU_MODEL else 31}
+        to: ${27 if IS_EU_MODEL else 31}
+
+  # 4-gang relay 4
+  - id: light_rl_4_4_Bottom
+    name: "Light - Relay 4 of 4 (Bottom)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
         from: ${6 if IS_EU_MODEL else 15}
-        to: ${6 if IS_EU_MODEL else 16}
-  - id: light_rl_4_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT}
-    internal: ${not expose_relays_leds_to_ha or gang_count != 4}
-    name: Light - Relay 4 of 4 (${LIGHT_MODE_TOP_OR_RIGHT_TEXT})
+        to: ${7 if IS_EU_MODEL else 16}
+  - id: light_rl_4_4_Top
+    name: "Light - Relay 4 of 4 (Top)"
+    internal: true
     <<: *light_partition_relays
     segments:
       - id: light_full
-        from: ${26 if IS_EU_MODEL else 7}
+        from: ${25 if IS_EU_MODEL else 7}
         to: ${26 if IS_EU_MODEL else 8}
+  - id: light_rl_4_4_Side
+    name: "Light - Relay 4 of 4 (Side)"
+    internal: true
+    <<: *light_partition_relays
+    segments:
+      - id: light_full
+        from: 0
+        to: ${2 if IS_EU_MODEL else 3}
+
+# ── Dummy outputs for the color picker RGB lights ────────────────────────────
 
 output:
   - id: output_relay_1
@@ -368,218 +520,79 @@ script:
     mode: restart
     then:
       - lambda: |-
-          // LED Group Assignment:
-          // - For US model: gb_lights_1 = left side LEDs, gb_lights_2 = right side LEDs
-          // - For EU model: gb_lights_1 = bottom LEDs, gb_lights_2 = top LEDs
-          // Gang configurations determine which LED segments are active
           #if defined(TX_ULTIMATE_EASY_GANG_COUNT) && (TX_ULTIMATE_EASY_GANG_COUNT == 1)
-          id(gb_lights_1) = { light_rl_1_1_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_1_${LIGHT_MODE_TOP_OR_RIGHT_TEXT} };
+          id(gb_lights_1) = { light_rl_1_1_Bottom };
+          id(gb_lights_2) = { light_rl_1_1_Top };
+          id(gb_lights_3) = { light_rl_1_1_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 2)
-          id(gb_lights_1) = { light_rl_1_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_2_2_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_2_${LIGHT_MODE_TOP_OR_RIGHT_TEXT},
-                              light_rl_2_2_${LIGHT_MODE_TOP_OR_RIGHT_TEXT} };
+          id(gb_lights_1) = { light_rl_1_2_Bottom, light_rl_2_2_Bottom };
+          id(gb_lights_2) = { light_rl_1_2_Top,    light_rl_2_2_Top };
+          id(gb_lights_3) = { light_rl_1_2_Side,   light_rl_2_2_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 3)
-          id(gb_lights_1) = { light_rl_1_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_2_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_3_3_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_3_${LIGHT_MODE_TOP_OR_RIGHT_TEXT},
-                              light_rl_2_3_${LIGHT_MODE_TOP_OR_RIGHT_TEXT},
-                              light_rl_3_3_${LIGHT_MODE_TOP_OR_RIGHT_TEXT} };
+          id(gb_lights_1) = { light_rl_1_3_Bottom, light_rl_2_3_Bottom, light_rl_3_3_Bottom };
+          id(gb_lights_2) = { light_rl_1_3_Top,    light_rl_2_3_Top,    light_rl_3_3_Top };
+          id(gb_lights_3) = { light_rl_1_3_Side,   light_rl_2_3_Side,   light_rl_3_3_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 4)
-          id(gb_lights_1) = { light_rl_1_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_2_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_3_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT},
-                              light_rl_4_4_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} };
-          id(gb_lights_2) = { light_rl_1_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT},
-                              light_rl_2_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT},
-                              light_rl_3_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT},
-                              light_rl_4_4_${LIGHT_MODE_TOP_OR_RIGHT_TEXT} };
+          id(gb_lights_1) = { light_rl_1_4_Bottom, light_rl_2_4_Bottom, light_rl_3_4_Bottom, light_rl_4_4_Bottom };
+          id(gb_lights_2) = { light_rl_1_4_Top,    light_rl_2_4_Top,    light_rl_3_4_Top,    light_rl_4_4_Top };
+          id(gb_lights_3) = { light_rl_1_4_Side,   light_rl_2_4_Side,   light_rl_3_4_Side,   light_rl_4_4_Side };
           #endif
           id(boot_initialization_relays_group_assignments) = true;
 
   - id: boot_initialize_relays_light_modes
     mode: restart
     then:
-      - lambda: |-
-          // Set this section of initialization as completed
-          id(boot_initialization_relays_light_modes) = true;
+      - lambda: id(boot_initialization_relays_light_modes) = true;
 
   - id: boot_initialize_relays_relay_modes
     mode: restart
     then:
-      - lambda: |-
-          // Set this section of initialization as completed
-          id(boot_initialization_relays_relay_modes) = true;
+      - lambda: id(boot_initialization_relays_relay_modes) = true;
 
   - id: !extend button_click_event
     then:
       - lambda: |-
-          // Handle only single clicks
-          if (click_count != 1) {
-            ESP_LOGV("${TAG_HW_RELAYS}", "Clicks: %" PRIu8, click_count);
-            return;
-          }
-
-          // Ignore if other touch events are active
+          if (click_count != 1) return;
           if (bs_multi_touch->state ||
               bs_swipe_${ID_SWIPE_LEFT_OR_UP_TEXT}->state ||
-              bs_swipe_${ID_SWIPE_RIGHT_OR_DOWN_TEXT}->state) {
-            ESP_LOGV("${TAG_HW_RELAYS}", "Multi-touch: %s", YESNO(bs_multi_touch->state));
-            ESP_LOGV("${TAG_HW_RELAYS}", "Swipe ${ID_SWIPE_LEFT_OR_UP_TEXT}: %s",
-                                          YESNO(bs_swipe_${ID_SWIPE_LEFT_OR_UP_TEXT}->state));
-            ESP_LOGV("${TAG_HW_RELAYS}", "Swipe ${ID_SWIPE_RIGHT_OR_DOWN_TEXT}: %s",
-                                          YESNO(bs_swipe_${ID_SWIPE_RIGHT_OR_DOWN_TEXT}->state));
-            return;
-          }
-
-          // Toggle relay if corresponding button action is enabled
-          // Note: If ESP-NOW package is included, it will extend this script and send ESP-NOW commands
-          // The local relay may toggle based on button action settings, and ESP-NOW will also send remote commands
+              bs_swipe_${ID_SWIPE_RIGHT_OR_DOWN_TEXT}->state) return;
           const bool api_disconnected = !global_api_server->is_connected() or
                                         !wifi_component->is_connected();
           std::string select_state;
           bool toggle_relay = false;
-          if (api_disconnected) {
-            ESP_LOGW("${TAG_HW_RELAYS}", "Toggle relays:");
-            ESP_LOGW("${TAG_HW_RELAYS}", "  API state: DISCONNECTED");
-            ESP_LOGW("${TAG_HW_RELAYS}", "  Button:    %" PRIu8, button);
-          } else {
-            ESP_LOGVV("${TAG_HW_RELAYS}", "Toggle relays:");
-            ESP_LOGVV("${TAG_HW_RELAYS}", "  API state: Connected");
-            ESP_LOGVV("${TAG_HW_RELAYS}", "  Button:    %" PRIu8, button);
-          }
           switch (button) {
             case ${BUTTON_1_ID}:
               select_state = sl_button_1_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_1_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_1_ACTION_FAILSAFE_TEXT}"));
-              if (toggle_relay && ${SL_RELAY_1_MODE} != 0)
-                sw_relay_1->toggle();
+              toggle_relay = (select_state == "${BUTTON_1_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_1_ACTION_FAILSAFE_TEXT}"));
+              if (toggle_relay && ${SL_RELAY_1_MODE} != 0) sw_relay_1->toggle();
               break;
             case ${BUTTON_2_ID}:
               select_state = sl_button_2_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_2_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_2_ACTION_FAILSAFE_TEXT}"));
-              if (toggle_relay && ${SL_RELAY_2_MODE} != 0)
-                sw_relay_2->toggle();
+              toggle_relay = (select_state == "${BUTTON_2_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_2_ACTION_FAILSAFE_TEXT}"));
+              if (toggle_relay && ${SL_RELAY_2_MODE} != 0) sw_relay_2->toggle();
               break;
             case ${BUTTON_3_ID}:
               select_state = sl_button_3_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_3_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_3_ACTION_FAILSAFE_TEXT}"));
-              if (toggle_relay && ${SL_RELAY_3_MODE} != 0)
-                sw_relay_3->toggle();
+              toggle_relay = (select_state == "${BUTTON_3_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_3_ACTION_FAILSAFE_TEXT}"));
+              if (toggle_relay && ${SL_RELAY_3_MODE} != 0) sw_relay_3->toggle();
               break;
             case ${BUTTON_4_ID}:
               select_state = sl_button_4_action->current_option();
-              toggle_relay = (select_state == "${BUTTON_4_ACTION_TEXT}" or
-                              (api_disconnected and select_state == "${BUTTON_4_ACTION_FAILSAFE_TEXT}"));
-              if (toggle_relay && ${SL_RELAY_4_MODE} != 0)
-                sw_relay_4->toggle();
+              toggle_relay = (select_state == "${BUTTON_4_ACTION_TEXT}" or (api_disconnected and select_state == "${BUTTON_4_ACTION_FAILSAFE_TEXT}"));
+              if (toggle_relay && ${SL_RELAY_4_MODE} != 0) sw_relay_4->toggle();
               break;
           }
-          if (toggle_relay) {
-            ESP_LOGI("${TAG_HW_RELAYS}", "Toggle relay %" PRIu8 ": (%s)", button, select_state.c_str());
-          } else if (not select_state.empty()) {
-            ESP_LOGV("${TAG_HW_RELAYS}", "Ignoring toggle for relay %" PRIu8 ": action is '%s'",
-                                        button, select_state.c_str());
-          } else {
-            ESP_LOGE("${TAG_HW_RELAYS}", "No button action selected for button %" PRIu8, button);
-          }
-
-  - id: !extend dump_config
-    then:
-      - lambda: |-
-          // Relay's modes
-          #if TX_ULTIMATE_EASY_GANG_COUNT > 1
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relays modes:");
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relay mode:");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT > 1
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 1: ${relay_1_mode}");
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 2: ${relay_2_mode}");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 3: ${relay_3_mode}");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 4
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 4: ${relay_4_mode}");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 4
-
-          // Relay's states
-          #if TX_ULTIMATE_EASY_GANG_COUNT > 1
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relays states:");
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relay state:");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT > 1
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 1: %s", sw_relay_1->state ? "ON" : "OFF");
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 2: %s", sw_relay_2->state ? "ON" : "OFF");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 3: %s", sw_relay_3->state ? "ON" : "OFF");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 4
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 4: %s", sw_relay_4->state ? "ON" : "OFF");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 4
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Expose Relay's LEDs to Home Assistant: ${expose_relays_leds_to_ha}");
-
-          // Boot initialization statuses
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Boot initialization flags:");
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Overall:     %s", YESNO(id(boot_initialization_relays)));
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Groups:      %s", YESNO(id(boot_initialization_relays_group_assignments)));
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Light modes: %s", YESNO(id(boot_initialization_relays_light_modes)));
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay modes: %s", YESNO(id(boot_initialization_relays_relay_modes)));
-
-          // Relay's LEDs modes
-          #if TX_ULTIMATE_EASY_GANG_COUNT > 1
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relays LEDs modes:");
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relay LEDs mode:");
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT > 1
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 1: %s", sl_relay_1_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 1: %s", sl_relay_1_light_mode->current_option());
-          #endif
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 2: %s", sl_relay_2_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 2: %s", sl_relay_2_light_mode->current_option());
-          #endif
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 3: %s", sl_relay_3_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 3: %s", sl_relay_3_light_mode->current_option());
-          #endif
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 4
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 4: %s", sl_relay_4_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 4: %s", sl_relay_4_light_mode->current_option());
-          #endif
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 4
 
   - id: !extend dump_config_list_packages
     then:
       - script.wait: dump_config
       - lambda: |-
-          // Check for requirements
           #ifndef TX_ULTIMATE_EASY_COMMON
             #error "The package TX-Ultimate-Easy-ESPHome_common.yaml is required."
           #endif
           #ifndef TX_ULTIMATE_EASY_HW_LEDS
             #error "The package TX-Ultimate-Easy-ESPHome_hw_leds.yaml is required."
-          #endif  // TX_ULTIMATE_EASY_HW_LEDS
-
-          // Identify itself
+          #endif
           ESP_LOGCONFIG(ESPHOME_PROJECT_NAME, "  - Hardware - Relays");
 
   - id: light_set_state
@@ -590,75 +603,37 @@ script:
       state: bool
     then:
       - lambda: |-
-          // Night mode holds the LED state — skip all automatic relay-triggered updates.
           #ifdef TX_ULTIMATE_EASY_NIGHT_MODE
-          if (sw_night_mode->state) {
-            ESP_LOGV("${TAG_HW_RELAYS}", "Night mode active - skipping LED update");
-            return;
+          if (sw_night_mode->state) return;
+          #endif
+
+          std::vector<light::LightState*>* group = nullptr;
+          if      (light_group == 1) group = &id(gb_lights_1);
+          else if (light_group == 2) group = &id(gb_lights_2);
+          else if (light_group == 3) group = &id(gb_lights_3);
+          else return;
+          if (light_index >= group->size()) return;
+
+          // Resolve which relay index this light_index corresponds to for color lookup
+          // light_index == relay index (0-based)
+          uint8_t r = 255, g = 255, b = 255;
+          switch (light_index) {
+            case 0: r = id(relay_1_color_r); g = id(relay_1_color_g); b = id(relay_1_color_b); break;
+            case 1: r = id(relay_2_color_r); g = id(relay_2_color_g); b = id(relay_2_color_b); break;
+            case 2: r = id(relay_3_color_r); g = id(relay_3_color_g); b = id(relay_3_color_b); break;
+            case 3: r = id(relay_4_color_r); g = id(relay_4_color_g); b = id(relay_4_color_b); break;
           }
-          #endif  // TX_ULTIMATE_EASY_NIGHT_MODE
 
-          ESP_LOGV("${TAG_HW_RELAYS}", "script: light_set_state");
-          ESP_LOGV("${TAG_HW_RELAYS}", "  light_group: %" PRIu8, light_group);
-          ESP_LOGV("${TAG_HW_RELAYS}", "  light_index: %" PRIu8, light_index);
-          ESP_LOGV("${TAG_HW_RELAYS}", "  state: %s", ONOFF(state));
-
-          static const uint32_t LIGHT_TRANSITION_TURN_ON = ${LIGHT_TRANSITION_TURN_ON};
-          static const uint32_t LIGHT_TRANSITION_TURN_OFF = ${LIGHT_TRANSITION_TURN_OFF};
-          static const uint8_t LIGHT_BRIGHTNESS_TURN_ON = ${LIGHT_BRIGHTNESS_TURN_ON};
-
-          switch (light_group) {
-            case 1:
-              if (light_index >= id(gb_lights_1).size()) {
-                ESP_LOGE("${TAG_HW_RELAYS}",
-                          "Invalid set with ${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} light for Relay %" PRIu8, light_index+1);
-                return;
-              }
-              if (state) {
-                ESP_LOGI("${TAG_HW_RELAYS}",
-                          "Turn-on ${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} light for Relay %" PRIu8, light_index+1);
-                auto call = id(gb_lights_1)[light_index]->turn_on();
-                if (LIGHT_TRANSITION_TURN_ON > 0)
-                  call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
-                if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
-                  call.set_brightness(LIGHT_BRIGHTNESS_TURN_ON / 100.0f);
-                call.perform();
-              } else {
-                ESP_LOGI("${TAG_HW_RELAYS}",
-                          "Turn-off ${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} light for Relay %" PRIu8, light_index+1);
-                auto call = id(gb_lights_1)[light_index]->turn_off();
-                if (LIGHT_TRANSITION_TURN_OFF > 0)
-                  call.set_transition_length(LIGHT_TRANSITION_TURN_OFF);  // in ms
-                call.perform();
-              }
-              break;
-            case 2:
-              if (light_index >= id(gb_lights_2).size()) {
-                ESP_LOGE("${TAG_HW_RELAYS}",
-                          "Invalid set with ${LIGHT_MODE_TOP_OR_RIGHT_TEXT} light for Relay %" PRIu8, light_index+1);
-                return;
-              }
-              if (state) {
-                ESP_LOGI("${TAG_HW_RELAYS}",
-                          "Turn-on ${LIGHT_MODE_TOP_OR_RIGHT_TEXT} light for Relay %" PRIu8, light_index+1);
-                auto call = id(gb_lights_2)[light_index]->turn_on();
-                if (LIGHT_TRANSITION_TURN_ON > 0)
-                  call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
-                if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
-                  call.set_brightness(LIGHT_BRIGHTNESS_TURN_ON / 100.0f);
-                call.perform();
-              } else {
-                ESP_LOGI("${TAG_HW_RELAYS}",
-                          "Turn-off ${LIGHT_MODE_TOP_OR_RIGHT_TEXT} light for Relay %" PRIu8, light_index+1);
-                auto call = id(gb_lights_2)[light_index]->turn_off();
-                if (LIGHT_TRANSITION_TURN_OFF > 0)
-                  call.set_transition_length(LIGHT_TRANSITION_TURN_OFF);  // in ms
-                call.perform();
-              }
-              break;
-            default:
-              ESP_LOGE("${TAG_HW_RELAYS}", "Invalid light_group=%" PRIu8 " (expected 1 or 2)", light_group);
-              break;
+          if (state) {
+            auto call = (*group)[light_index]->turn_on();
+            call.set_rgb(r / 255.0f, g / 255.0f, b / 255.0f);
+            call.set_brightness(1.0f);
+            call.set_transition_length(0);
+            call.perform();
+          } else {
+            auto call = (*group)[light_index]->turn_off();
+            call.set_transition_length(0);
+            call.perform();
           }
 
   - id: show_relay_status
@@ -667,214 +642,23 @@ script:
       - script.wait: boot_initialize_relays
       - lambda: |-
           if (not id(boot_initialization_relays)) {
-            ESP_LOGW("${TAG_HW_RELAYS}", "Relays not initialized yet");
-            if (not boot_initialize_relays->is_running())
-              boot_initialize_relays->execute();
+            if (not boot_initialize_relays->is_running()) boot_initialize_relays->execute();
             return;
           }
           for (uint8_t i = 0; i < ${gang_count}; i++) {
             bool relay_state = false;
-            std::string light_mode;
-
-            // Determine relay state and light mode
+            bool leds_enabled = false;
             switch (i) {
-              case 0:
-                relay_state = id(relay_1_state);
-                light_mode = sl_relay_1_light_mode->current_option();
-                break;
-              case 1:
-                relay_state = id(relay_2_state);
-                light_mode = sl_relay_2_light_mode->current_option();
-                break;
-              case 2:
-                relay_state = id(relay_3_state);
-                light_mode = sl_relay_3_light_mode->current_option();
-                break;
-              case 3:
-                relay_state = id(relay_4_state);
-                light_mode = sl_relay_4_light_mode->current_option();
-                break;
+              case 0: relay_state = id(relay_1_state); leds_enabled = id(sw_relay_1_leds_state); break;
+              case 1: relay_state = id(relay_2_state); leds_enabled = id(sw_relay_2_leds_state); break;
+              case 2: relay_state = id(relay_3_state); leds_enabled = id(sw_relay_3_leds_state); break;
+              case 3: relay_state = id(relay_4_state); leds_enabled = id(sw_relay_4_leds_state); break;
             }
-
-            ESP_LOGV("${TAG_HW_RELAYS}", "Relay %" PRIu8 " is %s", i + 1, relay_state ? "ON" : "OFF");
-            ESP_LOGV("${TAG_HW_RELAYS}", "Light Mode for Relay %" PRIu8 ": %s", i + 1, light_mode.c_str());
-
-            // Use light_set_state for light updates
-            if (light_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-              if (light_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || light_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-                light_set_state->execute(1, i, relay_state);  // Left/bottom light
-              }
-              if (light_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}" || light_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-                light_set_state->execute(2, i, relay_state);  // Right/top light
-              }
-            }
+            bool on = relay_state && leds_enabled;
+            light_set_state->execute(1, i, on);
+            light_set_state->execute(2, i, on);
+            light_set_state->execute(3, i, on);
           }
-
-select:
-  - &relay_light_mode
-    id: sl_relay_1_light_mode
-    name: Relay 1 light mode
-    platform: template
-    options:
-      - "${LIGHT_MODE_DISABLED_TEXT}"
-      - "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}"
-      - "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}"
-      - "${LIGHT_MODE_BOTH_TEXT}"
-    initial_option: "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}"
-    optimistic: true
-    restore_value: ${gang_count >= 1}
-    internal: ${gang_count < 1}
-    entity_category: config
-    disabled_by_default: false
-    icon: mdi:dots-square
-    on_value:
-      - lambda: |-
-          // Handle mode transitions (only after boot is complete)
-          if (!id(bs_boot_completed)->state) return;  // Skip during boot
-
-          static std::string previous_mode = "";  // Static variable local to THIS lambda only
-          std::string current_mode = x;
-
-          if (previous_mode.empty()) {
-            previous_mode = current_mode;  // Initialize on first run after boot
-            return;
-          }
-
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning TO Disabled - turn off lights
-            ESP_LOGI("${TAG_HW_RELAYS}",
-                      "Relay 1 light mode changed to ${LIGHT_MODE_DISABLED_TEXT} - turning off lights");
-            id(light_set_state)->execute(1, 0, false);  // Group 1, relay index 0
-            id(light_set_state)->execute(2, 0, false);  // Group 2, relay index 0
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning FROM Disabled - update lights based on relay state
-            ESP_LOGI("${TAG_HW_RELAYS}",
-                      "Relay 1 light mode changed from ${LIGHT_MODE_DISABLED_TEXT} - updating lights");
-            bool relay_state = id(relay_1_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(1, 0, relay_state);
-            }
-            if (current_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(2, 0, relay_state);
-            }
-          }
-
-          previous_mode = current_mode;
-
-  - id: sl_relay_2_light_mode
-    name: Relay 2 light mode
-    restore_value: ${gang_count >= 2}
-    internal: ${gang_count < 2}
-    <<: *relay_light_mode
-    on_value:
-      - lambda: |-
-          // Handle mode transitions (only after boot is complete)
-          if (!id(bs_boot_completed)->state) return;  // Skip during boot
-
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-
-          if (previous_mode.empty()) {
-            previous_mode = current_mode;  // Initialize on first run after boot
-            return;
-          }
-
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning TO Disabled - turn off lights
-            ESP_LOGI("${TAG_HW_RELAYS}",
-                      "Relay 2 light mode changed to ${LIGHT_MODE_DISABLED_TEXT} - turning off lights");
-            id(light_set_state)->execute(1, 1, false);  // Group 1, relay index 1
-            id(light_set_state)->execute(2, 1, false);  // Group 2, relay index 1
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning FROM Disabled - update lights based on relay state
-            ESP_LOGI("${TAG_HW_RELAYS}",
-                      "Relay 2 light mode changed from ${LIGHT_MODE_DISABLED_TEXT} - updating lights");
-            bool relay_state = id(relay_2_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(1, 1, relay_state);
-            }
-            if (current_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(2, 1, relay_state);
-            }
-          }
-
-          previous_mode = current_mode;
-
-  - id: sl_relay_3_light_mode
-    name: Relay 3 light mode
-    restore_value: ${gang_count >= 3}
-    internal: ${gang_count < 3}
-    <<: *relay_light_mode
-    on_value:
-      - lambda: |-
-          // Handle mode transitions (only after boot is complete)
-          if (!id(bs_boot_completed)->state) return;  // Skip during boot
-
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-
-          if (previous_mode.empty()) {
-            previous_mode = current_mode;  // Initialize on first run after boot
-            return;
-          }
-
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning TO Disabled - turn off lights
-            ESP_LOGI("${TAG_HW_RELAYS}",
-                      "Relay 3 light mode changed to ${LIGHT_MODE_DISABLED_TEXT} - turning off lights");
-            id(light_set_state)->execute(1, 2, false);  // Group 1, relay index 2
-            id(light_set_state)->execute(2, 2, false);  // Group 2, relay index 2
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning FROM Disabled - update lights based on relay state
-            ESP_LOGI("${TAG_HW_RELAYS}",
-                      "Relay 3 light mode changed from ${LIGHT_MODE_DISABLED_TEXT} - updating lights");
-            bool relay_state = id(relay_3_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(1, 2, relay_state);
-            }
-            if (current_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(2, 2, relay_state);
-            }
-          }
-
-          previous_mode = current_mode;
-
-  - id: sl_relay_4_light_mode
-    name: Relay 4 light mode
-    restore_value: ${gang_count >= 4}
-    internal: ${gang_count < 4}
-    <<: *relay_light_mode
-    on_value:
-      - lambda: |-
-          // Handle mode transitions (only after boot is complete)
-          if (!id(bs_boot_completed)->state) return;  // Skip during boot
-
-          static std::string previous_mode = "";
-          std::string current_mode = x;
-
-          if (previous_mode.empty()) {
-            previous_mode = current_mode;  // Initialize on first run after boot
-            return;
-          }
-
-          if (previous_mode != "${LIGHT_MODE_DISABLED_TEXT}" && current_mode == "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning TO Disabled - turn off lights
-            ESP_LOGI("${TAG_HW_RELAYS}", "Relay 4 light mode changed to ${LIGHT_MODE_DISABLED_TEXT} - turning off lights");
-            id(light_set_state)->execute(1, 3, false);  // Group 1, relay index 3
-            id(light_set_state)->execute(2, 3, false);  // Group 2, relay index 3
-          } else if (previous_mode == "${LIGHT_MODE_DISABLED_TEXT}" && current_mode != "${LIGHT_MODE_DISABLED_TEXT}") {
-            // Transitioning FROM Disabled - update lights based on relay state
-            ESP_LOGI("${TAG_HW_RELAYS}", "Relay 4 light mode changed from ${LIGHT_MODE_DISABLED_TEXT} - updating lights");
-            bool relay_state = id(relay_4_state);
-            if (current_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(1, 3, relay_state);
-            }
-            if (current_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}" || current_mode == "${LIGHT_MODE_BOTH_TEXT}") {
-              id(light_set_state)->execute(2, 3, relay_state);
-            }
-          }
-
-          previous_mode = current_mode;
 
 switch:
   - id: sw_relay_1
@@ -882,8 +666,7 @@ switch:
     internal: ${SL_RELAY_1_MODE != 1 or gang_count < 1}
     restore_mode: ${RELAYS_SWITCH_RESTORE_MODE}
     platform: template
-    lambda: |-
-      return id(relay_1_state);
+    lambda: return id(relay_1_state);
     turn_on_action:
       - lambda: id(relay_1_state) = true;
       - light.turn_on: light_output_1
@@ -896,8 +679,7 @@ switch:
     internal: ${SL_RELAY_2_MODE != 1 or gang_count < 2}
     restore_mode: ${RELAYS_SWITCH_RESTORE_MODE}
     platform: template
-    lambda: |-
-      return id(relay_2_state);
+    lambda: return id(relay_2_state);
     turn_on_action:
       - lambda: id(relay_2_state) = true;
       - light.turn_on: light_output_2
@@ -910,8 +692,7 @@ switch:
     internal: ${SL_RELAY_3_MODE != 1 or gang_count < 3}
     restore_mode: ${RELAYS_SWITCH_RESTORE_MODE}
     platform: template
-    lambda: |-
-      return id(relay_3_state);
+    lambda: return id(relay_3_state);
     turn_on_action:
       - lambda: id(relay_3_state) = true;
       - light.turn_on: light_output_3
@@ -924,12 +705,93 @@ switch:
     internal: ${SL_RELAY_4_MODE != 1 or gang_count < 4}
     restore_mode: ${RELAYS_SWITCH_RESTORE_MODE}
     platform: template
-    lambda: |-
-      return id(relay_4_state);
+    lambda: return id(relay_4_state);
     turn_on_action:
       - lambda: id(relay_4_state) = true;
       - light.turn_on: light_output_4
     turn_off_action:
       - lambda: id(relay_4_state) = false;
       - light.turn_off: light_output_4
+
+
+  # ── LED enable switches (one per relay, toggle LEDs on/off) ──────────────
+  - id: sw_relay_1_leds
+    name: Relay 1 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    internal: ${gang_count < 1}
+    lambda: |-
+      return id(sw_relay_1_leds_state);
+    turn_on_action:
+      - lambda: |-
+          id(sw_relay_1_leds_state) = true;
+          show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          id(sw_relay_1_leds_state) = false;
+          light_set_state->execute(1, 0, false);
+          light_set_state->execute(2, 0, false);
+          light_set_state->execute(3, 0, false);
+
+  - id: sw_relay_2_leds
+    name: Relay 2 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    internal: ${gang_count < 2}
+    lambda: |-
+      return id(sw_relay_2_leds_state);
+    turn_on_action:
+      - lambda: |-
+          id(sw_relay_2_leds_state) = true;
+          show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          id(sw_relay_2_leds_state) = false;
+          light_set_state->execute(1, 1, false);
+          light_set_state->execute(2, 1, false);
+          light_set_state->execute(3, 1, false);
+
+  - id: sw_relay_3_leds
+    name: Relay 3 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    internal: ${gang_count < 3}
+    lambda: |-
+      return id(sw_relay_3_leds_state);
+    turn_on_action:
+      - lambda: |-
+          id(sw_relay_3_leds_state) = true;
+          show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          id(sw_relay_3_leds_state) = false;
+          light_set_state->execute(1, 2, false);
+          light_set_state->execute(2, 2, false);
+          light_set_state->execute(3, 2, false);
+
+  - id: sw_relay_4_leds
+    name: Relay 4 LEDs
+    icon: mdi:led-on
+    platform: template
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    internal: ${gang_count < 4}
+    lambda: |-
+      return id(sw_relay_4_leds_state);
+    turn_on_action:
+      - lambda: |-
+          id(sw_relay_4_leds_state) = true;
+          show_relay_status->execute();
+    turn_off_action:
+      - lambda: |-
+          id(sw_relay_4_leds_state) = false;
+          light_set_state->execute(1, 3, false);
+          light_set_state->execute(2, 3, false);
+          light_set_state->execute(3, 3, false);
 ...
