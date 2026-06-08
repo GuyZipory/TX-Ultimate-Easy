@@ -61,9 +61,6 @@ globals:
   - id: gb_lights_2
     type: std::vector<light::LightState*>
     restore_value: false
-  - id: gb_lights_3
-    type: std::vector<light::LightState*>
-    restore_value: false
 
   - id: relay_1_state
     type: bool
@@ -219,21 +216,6 @@ light:
       - id: light_full
         from: 20
         to: 26
-  - id: light_rl_1_1_Side
-    name: "Light - Relay 1 of 1 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: 27
-        to: 27
-      - id: light_full
-        from: 0
-        to: 5
-      - id: light_full
-        from: 13
-        to: 19
-
   # 2-gang relay 1 (left)
   - id: light_rl_1_2_Bottom
     name: "Light - Relay 1 of 2 (Bottom)"
@@ -251,15 +233,6 @@ light:
       - id: light_full
         from: ${20 if IS_EU_MODEL else 25}
         to: ${23 if IS_EU_MODEL else 28}
-  - id: light_rl_1_2_Side
-    name: "Light - Relay 1 of 2 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${13 if IS_EU_MODEL else 15}
-        to: ${19 if IS_EU_MODEL else 19}
-
   # 2-gang relay 2 (right)
   - id: light_rl_2_2_Bottom
     name: "Light - Relay 2 of 2 (Bottom)"
@@ -277,18 +250,6 @@ light:
       - id: light_full
         from: ${24 if IS_EU_MODEL else 29}
         to: ${26 if IS_EU_MODEL else 31}
-  - id: light_rl_2_2_Side
-    name: "Light - Relay 2 of 2 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${27 if IS_EU_MODEL else 31}
-        to: ${27 if IS_EU_MODEL else 31}
-      - id: light_full
-        from: 0
-        to: ${5 if IS_EU_MODEL else 8}
-
   # 3-gang relay 1
   - id: light_rl_1_3_Bottom
     name: "Light - Relay 1 of 3 (Bottom)"
@@ -306,15 +267,6 @@ light:
       - id: light_full
         from: ${20 if IS_EU_MODEL else 25}
         to: ${21 if IS_EU_MODEL else 26}
-  - id: light_rl_1_3_Side
-    name: "Light - Relay 1 of 3 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${17 if IS_EU_MODEL else 21}
-        to: ${19 if IS_EU_MODEL else 24}
-
   # 3-gang relay 2
   - id: light_rl_2_3_Bottom
     name: "Light - Relay 2 of 3 (Bottom)"
@@ -332,15 +284,6 @@ light:
       - id: light_full
         from: ${22 if IS_EU_MODEL else 3}
         to: ${23 if IS_EU_MODEL else 4}
-  - id: light_rl_2_3_Side
-    name: "Light - Relay 2 of 3 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${14 if IS_EU_MODEL else 18}
-        to: ${16 if IS_EU_MODEL else 20}
-
   # 3-gang relay 3
   - id: light_rl_3_3_Bottom
     name: "Light - Relay 3 of 3 (Bottom)"
@@ -358,18 +301,6 @@ light:
       - id: light_full
         from: ${25 if IS_EU_MODEL else 6}
         to: ${26 if IS_EU_MODEL else 7}
-  - id: light_rl_3_3_Side
-    name: "Light - Relay 3 of 3 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${27 if IS_EU_MODEL else 31}
-        to: ${27 if IS_EU_MODEL else 31}
-      - id: light_full
-        from: 0
-        to: ${2 if IS_EU_MODEL else 3}
-
   # 4-gang relay 1
   - id: light_rl_1_4_Bottom
     name: "Light - Relay 1 of 4 (Bottom)"
@@ -387,15 +318,6 @@ light:
       - id: light_full
         from: ${20 if IS_EU_MODEL else 25}
         to: ${20 if IS_EU_MODEL else 26}
-  - id: light_rl_1_4_Side
-    name: "Light - Relay 1 of 4 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${18 if IS_EU_MODEL else 22}
-        to: ${19 if IS_EU_MODEL else 24}
-
   # 4-gang relay 2
   - id: light_rl_2_4_Bottom
     name: "Light - Relay 2 of 4 (Bottom)"
@@ -413,15 +335,6 @@ light:
       - id: light_full
         from: ${21 if IS_EU_MODEL else 1}
         to: ${22 if IS_EU_MODEL else 2}
-  - id: light_rl_2_4_Side
-    name: "Light - Relay 2 of 4 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${15 if IS_EU_MODEL else 19}
-        to: ${17 if IS_EU_MODEL else 21}
-
   # 4-gang relay 3
   - id: light_rl_3_4_Bottom
     name: "Light - Relay 3 of 4 (Bottom)"
@@ -439,18 +352,6 @@ light:
       - id: light_full
         from: ${23 if IS_EU_MODEL else 5}
         to: ${24 if IS_EU_MODEL else 6}
-  - id: light_rl_3_4_Side
-    name: "Light - Relay 3 of 4 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: ${13 if IS_EU_MODEL else 15}
-        to: ${14 if IS_EU_MODEL else 16}
-      - id: light_full
-        from: ${27 if IS_EU_MODEL else 31}
-        to: ${27 if IS_EU_MODEL else 31}
-
   # 4-gang relay 4
   - id: light_rl_4_4_Bottom
     name: "Light - Relay 4 of 4 (Bottom)"
@@ -468,15 +369,6 @@ light:
       - id: light_full
         from: ${25 if IS_EU_MODEL else 7}
         to: ${26 if IS_EU_MODEL else 8}
-  - id: light_rl_4_4_Side
-    name: "Light - Relay 4 of 4 (Side)"
-    internal: true
-    <<: *light_partition_relays
-    segments:
-      - id: light_full
-        from: 0
-        to: ${2 if IS_EU_MODEL else 3}
-
 # ── Dummy outputs for the color picker RGB lights ────────────────────────────
 
 output:
@@ -523,19 +415,15 @@ script:
           #if defined(TX_ULTIMATE_EASY_GANG_COUNT) && (TX_ULTIMATE_EASY_GANG_COUNT == 1)
           id(gb_lights_1) = { light_rl_1_1_Bottom };
           id(gb_lights_2) = { light_rl_1_1_Top };
-          id(gb_lights_3) = { light_rl_1_1_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 2)
           id(gb_lights_1) = { light_rl_1_2_Bottom, light_rl_2_2_Bottom };
           id(gb_lights_2) = { light_rl_1_2_Top,    light_rl_2_2_Top };
-          id(gb_lights_3) = { light_rl_1_2_Side,   light_rl_2_2_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 3)
           id(gb_lights_1) = { light_rl_1_3_Bottom, light_rl_2_3_Bottom, light_rl_3_3_Bottom };
           id(gb_lights_2) = { light_rl_1_3_Top,    light_rl_2_3_Top,    light_rl_3_3_Top };
-          id(gb_lights_3) = { light_rl_1_3_Side,   light_rl_2_3_Side,   light_rl_3_3_Side };
           #elif (TX_ULTIMATE_EASY_GANG_COUNT == 4)
           id(gb_lights_1) = { light_rl_1_4_Bottom, light_rl_2_4_Bottom, light_rl_3_4_Bottom, light_rl_4_4_Bottom };
           id(gb_lights_2) = { light_rl_1_4_Top,    light_rl_2_4_Top,    light_rl_3_4_Top,    light_rl_4_4_Top };
-          id(gb_lights_3) = { light_rl_1_4_Side,   light_rl_2_4_Side,   light_rl_3_4_Side,   light_rl_4_4_Side };
           #endif
           id(boot_initialization_relays_group_assignments) = true;
 
@@ -610,7 +498,6 @@ script:
           std::vector<light::LightState*>* group = nullptr;
           if      (light_group == 1) group = &id(gb_lights_1);
           else if (light_group == 2) group = &id(gb_lights_2);
-          else if (light_group == 3) group = &id(gb_lights_3);
           else return;
           if (light_index >= group->size()) return;
 
@@ -657,7 +544,6 @@ script:
             bool on = relay_state && leds_enabled;
             light_set_state->execute(1, i, on);
             light_set_state->execute(2, i, on);
-            light_set_state->execute(3, i, on);
           }
 
 switch:
