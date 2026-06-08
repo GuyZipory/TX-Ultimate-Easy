@@ -75,74 +75,6 @@ globals:
     type: bool
     initial_value: 'false'
 
-  # Stored colors per relay (RGB 0-255), persisted across reboots
-  - id: relay_1_color_r
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_1_color_g
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_1_color_b
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_2_color_r
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_2_color_g
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_2_color_b
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_3_color_r
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_3_color_g
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_3_color_b
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_4_color_r
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_4_color_g
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-  - id: relay_4_color_b
-    type: uint8_t
-    restore_value: true
-    initial_value: '255'
-
-  # LED enable state per relay (persisted)
-  - id: sw_relay_1_leds_state
-    type: bool
-    restore_value: true
-    initial_value: 'true'
-  - id: sw_relay_2_leds_state
-    type: bool
-    restore_value: true
-    initial_value: 'true'
-  - id: sw_relay_3_leds_state
-    type: bool
-    restore_value: true
-    initial_value: 'true'
-  - id: sw_relay_4_leds_state
-    type: bool
-    restore_value: true
-    initial_value: 'true'
-
 light:
   - id: light_output_1
     name: Light output 1
@@ -501,19 +433,8 @@ script:
           else return;
           if (light_index >= group->size()) return;
 
-          // Resolve which relay index this light_index corresponds to for color lookup
-          // light_index == relay index (0-based)
-          uint8_t r = 255, g = 255, b = 255;
-          switch (light_index) {
-            case 0: r = id(relay_1_color_r); g = id(relay_1_color_g); b = id(relay_1_color_b); break;
-            case 1: r = id(relay_2_color_r); g = id(relay_2_color_g); b = id(relay_2_color_b); break;
-            case 2: r = id(relay_3_color_r); g = id(relay_3_color_g); b = id(relay_3_color_b); break;
-            case 3: r = id(relay_4_color_r); g = id(relay_4_color_g); b = id(relay_4_color_b); break;
-          }
-
           if (state) {
             auto call = (*group)[light_index]->turn_on();
-            call.set_rgb(r / 255.0f, g / 255.0f, b / 255.0f);
             call.set_brightness(1.0f);
             call.set_transition_length(0);
             call.perform();
@@ -534,16 +455,14 @@ script:
           }
           for (uint8_t i = 0; i < ${gang_count}; i++) {
             bool relay_state = false;
-            bool leds_enabled = false;
             switch (i) {
-              case 0: relay_state = id(relay_1_state); leds_enabled = id(sw_relay_1_leds_state); break;
-              case 1: relay_state = id(relay_2_state); leds_enabled = id(sw_relay_2_leds_state); break;
-              case 2: relay_state = id(relay_3_state); leds_enabled = id(sw_relay_3_leds_state); break;
-              case 3: relay_state = id(relay_4_state); leds_enabled = id(sw_relay_4_leds_state); break;
+              case 0: relay_state = id(relay_1_state); break;
+              case 1: relay_state = id(relay_2_state); break;
+              case 2: relay_state = id(relay_3_state); break;
+              case 3: relay_state = id(relay_4_state); break;
             }
-            bool on = relay_state && leds_enabled;
-            light_set_state->execute(1, i, on);
-            light_set_state->execute(2, i, on);
+            light_set_state->execute(1, i, relay_state);
+            light_set_state->execute(2, i, relay_state);
           }
 
 switch:
@@ -598,6 +517,5 @@ switch:
     turn_off_action:
       - lambda: id(relay_4_state) = false;
       - light.turn_off: light_output_4
-
 
 ...
