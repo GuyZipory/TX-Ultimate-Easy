@@ -169,6 +169,10 @@ light:
     on_state:
       then:
         - script.execute: show_relay_status
+        # Persist the new color to flash immediately so it survives a power cut
+        # (otherwise ESPHome batches the write for up to ~60s and a sudden power
+        # loss reverts the color to white).
+        - lambda: global_preferences->sync();
   - id: relay_2_color
     name: Relay 2 color
     red: relay_2_color_r_out
