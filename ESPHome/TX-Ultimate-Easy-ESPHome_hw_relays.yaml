@@ -152,6 +152,45 @@ light:
             id(relay_4_state) = false;
             show_relay_status->execute();
 
+  # ── Per-relay color pickers (config; each persists its own color in NVS) ──
+  # These are color stores only (no-op outputs). The chosen color is read in
+  # light_set_state and applied to that relay's indicator.
+  - &relay_color_light
+    id: relay_1_color
+    name: Relay 1 color
+    platform: rgb
+    red: relay_1_color_r_out
+    green: relay_1_color_g_out
+    blue: relay_1_color_b_out
+    internal: ${gang_count < 1}
+    entity_category: config
+    disabled_by_default: false
+    restore_mode: RESTORE_DEFAULT_ON
+    on_state:
+      then:
+        - script.execute: show_relay_status
+  - id: relay_2_color
+    name: Relay 2 color
+    red: relay_2_color_r_out
+    green: relay_2_color_g_out
+    blue: relay_2_color_b_out
+    internal: ${gang_count < 2}
+    <<: *relay_color_light
+  - id: relay_3_color
+    name: Relay 3 color
+    red: relay_3_color_r_out
+    green: relay_3_color_g_out
+    blue: relay_3_color_b_out
+    internal: ${gang_count < 3}
+    <<: *relay_color_light
+  - id: relay_4_color
+    name: Relay 4 color
+    red: relay_4_color_r_out
+    green: relay_4_color_g_out
+    blue: relay_4_color_b_out
+    internal: ${gang_count < 4}
+    <<: *relay_color_light
+
   # These lights are used to indicate relay's statuses
   - &light_partition_relays
     id: light_rl_1_1_${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}
@@ -343,6 +382,36 @@ output:
   - id: output_relay_4
     platform: gpio
     pin: GPIO23
+
+  # ── No-op float outputs backing the per-relay color pickers ──────────────
+  - &relay_color_out
+    id: relay_1_color_r_out
+    platform: template
+    type: float
+    write_action:
+      - lambda: return;
+  - id: relay_1_color_g_out
+    <<: *relay_color_out
+  - id: relay_1_color_b_out
+    <<: *relay_color_out
+  - id: relay_2_color_r_out
+    <<: *relay_color_out
+  - id: relay_2_color_g_out
+    <<: *relay_color_out
+  - id: relay_2_color_b_out
+    <<: *relay_color_out
+  - id: relay_3_color_r_out
+    <<: *relay_color_out
+  - id: relay_3_color_g_out
+    <<: *relay_color_out
+  - id: relay_3_color_b_out
+    <<: *relay_color_out
+  - id: relay_4_color_r_out
+    <<: *relay_color_out
+  - id: relay_4_color_g_out
+    <<: *relay_color_out
+  - id: relay_4_color_b_out
+    <<: *relay_color_out
 
 script:
   - id: !extend boot_initialize
@@ -610,6 +679,15 @@ script:
           static const uint32_t LIGHT_TRANSITION_TURN_OFF = ${LIGHT_TRANSITION_TURN_OFF};
           static const uint8_t LIGHT_BRIGHTNESS_TURN_ON = ${LIGHT_BRIGHTNESS_TURN_ON};
 
+          // Per-relay color from that relay's color picker (defaults to white).
+          float cr = 1.0f, cg = 1.0f, cb = 1.0f;
+          switch (light_index) {
+            case 0: cr = id(relay_1_color)->current_values.get_red(); cg = id(relay_1_color)->current_values.get_green(); cb = id(relay_1_color)->current_values.get_blue(); break;
+            case 1: cr = id(relay_2_color)->current_values.get_red(); cg = id(relay_2_color)->current_values.get_green(); cb = id(relay_2_color)->current_values.get_blue(); break;
+            case 2: cr = id(relay_3_color)->current_values.get_red(); cg = id(relay_3_color)->current_values.get_green(); cb = id(relay_3_color)->current_values.get_blue(); break;
+            case 3: cr = id(relay_4_color)->current_values.get_red(); cg = id(relay_4_color)->current_values.get_green(); cb = id(relay_4_color)->current_values.get_blue(); break;
+          }
+
           switch (light_group) {
             case 1:
               if (light_index >= id(gb_lights_1).size()) {
@@ -621,6 +699,7 @@ script:
                 ESP_LOGI("${TAG_HW_RELAYS}",
                           "Turn-on ${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT} light for Relay %" PRIu8, light_index+1);
                 auto call = id(gb_lights_1)[light_index]->turn_on();
+                call.set_rgb(cr, cg, cb);
                 if (LIGHT_TRANSITION_TURN_ON > 0)
                   call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
                 if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
@@ -645,6 +724,7 @@ script:
                 ESP_LOGI("${TAG_HW_RELAYS}",
                           "Turn-on ${LIGHT_MODE_TOP_OR_RIGHT_TEXT} light for Relay %" PRIu8, light_index+1);
                 auto call = id(gb_lights_2)[light_index]->turn_on();
+                call.set_rgb(cr, cg, cb);
                 if (LIGHT_TRANSITION_TURN_ON > 0)
                   call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
                 if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
