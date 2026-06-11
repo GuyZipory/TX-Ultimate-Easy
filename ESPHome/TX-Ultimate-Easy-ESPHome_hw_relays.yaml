@@ -173,7 +173,7 @@ light:
     on_state:
       then:
         - script.execute: show_relay_status
-        - script.execute: persist_relay_colors
+        - script.execute: persist_relay_prefs
   - id: relay_2_color
     name: Relay 2 color
     red: relay_2_color_r_out
@@ -811,11 +811,13 @@ script:
               break;
           }
 
-  # Flush the just-changed relay color to flash. Waits briefly so the light's
-  # own state-save has landed in the preferences buffer before we sync(), then
-  # forces the write immediately so the color survives a sudden power cut.
-  # mode: restart coalesces rapid changes (e.g. dragging the color wheel).
-  - id: persist_relay_colors
+  # Flush just-changed relay preferences (color AND light mode) to flash.
+  # ESPHome batches preference writes (~60s), so a sudden power cut would lose
+  # them. Wait briefly so the entity's own state-save has landed in the
+  # preferences buffer, then sync() forces the write immediately so the choice
+  # survives a power cut. mode: restart coalesces rapid changes (e.g. dragging
+  # the color wheel, or flipping the mode select a few times).
+  - id: persist_relay_prefs
     mode: restart
     then:
       - delay: 800ms
@@ -898,6 +900,7 @@ select:
     icon: mdi:dots-square
     on_value:
       - script.execute: show_relay_status
+      - script.execute: persist_relay_prefs   # flush the chosen mode so it survives a power cut
 
   - id: sl_relay_2_light_mode
     name: Relay 2 light mode
