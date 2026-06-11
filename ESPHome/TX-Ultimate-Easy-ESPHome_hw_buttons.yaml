@@ -300,6 +300,15 @@ script:
     then:
       - lambda: |-
           uint32_t current_time = millis();
+          // Clear stale gesture-suppression flags from a *previous* gesture. The relay
+          // toggle guard skips a click while a swipe/multi-touch flag is ON; those flags
+          // auto-off on a short timer that can be unreliable (e.g. very small touch
+          // duration), leaving a stuck flag that permanently blocks toggling. A fresh,
+          // independent press must start clean — a real swipe/multi-touch in THIS gesture
+          // re-sets its flag afterward, so same-gesture suppression still works.
+          bs_multi_touch->publish_state(false);
+          bs_swipe_${ID_SWIPE_RIGHT_OR_DOWN_TEXT}->publish_state(false);
+          bs_swipe_${ID_SWIPE_LEFT_OR_UP_TEXT}->publish_state(false);
           // Check if we should start a new click sequence:
           // 1. Previous cycle completed (start_time was reset to 0)
           // 2. Position changed
