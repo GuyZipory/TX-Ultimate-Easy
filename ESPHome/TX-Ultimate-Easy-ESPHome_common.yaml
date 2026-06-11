@@ -1,10 +1,11 @@
 ####################################################################################################
 #####                              TX Ultimate Easy for ESPHome                                #####
-#####                  Repository: https://github.com/edwardtfn/TX-Ultimate-Easy               #####
+#####                  Repository: https://github.com/GuyZipory/TX-Ultimate-Easy               #####
 ####################################################################################################
 ##### Purpose: ESPHome - Common                                                                #####
 ####################################################################################################
 ##### Author: edwardtfn - https://github.com/edwardtfn - https://buymeacoffee.com/edwardfirmo  #####
+##### Fork maintained by: GuyZipory - https://github.com/GuyZipory                             #####
 ####################################################################################################
 ##### NOTE:                                                                                    #####
 ##### - Make changes ONLY if absolutely necessary and you have the required knowledge.         #####
@@ -70,7 +71,7 @@ esphome:
   comment: TX Ultimate Easy
   min_version: 2025.11.0
   project:
-    name: "edwardtfn.tx_ultimate_easy"
+    name: "guyzipory.tx_ultimate_easy"
     version: ${version}
   platformio_options:
     build_flags:
@@ -107,9 +108,9 @@ esphome:
 external_components:
   - source:
       type: git
-      url: https://github.com/edwardtfn/TX-Ultimate-Easy
-      ref: v${version}
-    refresh: 1h
+      url: https://github.com/GuyZipory/TX-Ultimate-Easy
+      ref: main
+    refresh: 0s  # Always re-fetch the moving branch (avoids stale cache)
     components:
       - tx_ultimate_easy
 

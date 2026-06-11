@@ -8,7 +8,7 @@ from esphome.const import (
 from esphome.core import CORE
 import logging
 
-CODEOWNERS = ["@edwardtfn"]
+CODEOWNERS = ["@edwardtfn", "@GuyZipory"]
 DEPENDENCIES = ['uart']
 
 CONF_TX_ULTIMATE_EASY = "tx_ultimate_easy"

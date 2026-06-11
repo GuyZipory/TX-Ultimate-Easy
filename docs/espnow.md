@@ -8,7 +8,7 @@ Switches can control relays on other TX Ultimate Easy devices directly (peer-to-
    ```yaml
    packages:
      remote_package:
-       url: https://github.com/edwardtfn/TX-Ultimate-Easy
+       url: https://github.com/GuyZipory/TX-Ultimate-Easy
        ref: main
        refresh: 5min
        files:

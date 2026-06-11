@@ -1,8 +1,9 @@
 ####################################################################################################
 #####                              TX Ultimate Easy for ESPHome                                #####
-#####                  Repository: https://github.com/edwardtfn/TX-Ultimate-Easy               #####
+#####                  Repository: https://github.com/GuyZipory/TX-Ultimate-Easy               #####
 ####################################################################################################
 ##### Author: edwardtfn - https://github.com/edwardtfn - https://buymeacoffee.com/edwardfirmo  #####
+##### Fork maintained by: GuyZipory - https://github.com/GuyZipory                             #####
 ####################################################################################################
 ---
 substitutions:
@@ -17,9 +18,9 @@ wifi:
 
 packages:
   remote_package:
-    url: https://github.com/edwardtfn/TX-Ultimate-Easy
-    ref: stable  # Or you can specify a version, like `ref: v2024.12.6` or `ref: latest` to the latest non-stable
-    refresh: 5min
+    url: https://github.com/GuyZipory/TX-Ultimate-Easy
+    ref: main  # Tracks the GuyZipory fork's main branch
+    refresh: 0s  # Always re-fetch the moving branch (avoids stale cache)
     files:
       - ESPHome/TX-Ultimate-Easy-ESPHome_core.yaml                  # Core (essential) packages
       - ESPHome/TX-Ultimate-Easy-ESPHome_standard.yaml              # Non-essential, but recommended packages

@@ -1,9 +1,11 @@
 # TX Ultimate Easy
 
-[![Version][version-shield]](https://github.com/edwardtfn/TX-Ultimate-Easy/tags)
-[![GitHub Activity][commits-shield]](https://github.com/edwardtfn/TX-Ultimate-Easy/commits/main)
+> Fork of [edwardtfn/TX-Ultimate-Easy](https://github.com/edwardtfn/TX-Ultimate-Easy) by Edward Firmo, maintained by [GuyZipory](https://github.com/GuyZipory).
+
+[![Version][version-shield]](https://github.com/GuyZipory/TX-Ultimate-Easy/tags)
+[![GitHub Activity][commits-shield]](https://github.com/GuyZipory/TX-Ultimate-Easy/commits/main)
 [![License][license-shield]](LICENSE)
-[![GitHub Last Commit][last-commit-shield]](https://github.com/edwardtfn/TX-Ultimate-Easy/commits/main)
+[![GitHub Last Commit][last-commit-shield]](https://github.com/GuyZipory/TX-Ultimate-Easy/commits/main)
 [![ESPHome][esphome-shield]](https://esphome.io/)
 [![Discord][discord-shield]](https://discord.gg/Db6WJWzWuf)
 [![Buy me an ice-cream][buymeacoffee-shield]](https://www.buymeacoffee.com/edwardfirmo)
@@ -13,13 +15,13 @@
 | --- | :-- |
 <!-- markdownlint-enable MD013 MD033 -->
 
-[version-shield]: https://img.shields.io/github/v/tag/edwardtfn/TX-Ultimate-Easy?label=version
-[version]: https://github.com/edwardtfn/TX-Ultimate-Easy/tags
-[commits-shield]: https://img.shields.io/github/commit-activity/y/edwardtfn/TX-Ultimate-Easy
-[commits]: https://github.com/edwardtfn/TX-Ultimate-Easy/commits/main
-[license-shield]: https://img.shields.io/github/license/edwardtfn/TX-Ultimate-Easy
+[version-shield]: https://img.shields.io/github/v/tag/GuyZipory/TX-Ultimate-Easy?label=version
+[version]: https://github.com/GuyZipory/TX-Ultimate-Easy/tags
+[commits-shield]: https://img.shields.io/github/commit-activity/y/GuyZipory/TX-Ultimate-Easy
+[commits]: https://github.com/GuyZipory/TX-Ultimate-Easy/commits/main
+[license-shield]: https://img.shields.io/github/license/GuyZipory/TX-Ultimate-Easy
 [license]: LICENSE
-[last-commit-shield]: https://img.shields.io/github/last-commit/edwardtfn/TX-Ultimate-Easy
+[last-commit-shield]: https://img.shields.io/github/last-commit/GuyZipory/TX-Ultimate-Easy
 [esphome-shield]: https://img.shields.io/badge/powered%20by-ESPHome-blue
 [esphome]: https://esphome.io/
 [discord-shield]: https://img.shields.io/discord/1243652421692031016?logo=discord
@@ -239,7 +241,7 @@ Follow these steps to get your TX Ultimate device up and running with ESPHome.
 
    packages:
      remote_package:
-       url: https://github.com/edwardtfn/TX-Ultimate-Easy
+       url: https://github.com/GuyZipory/TX-Ultimate-Easy
        ref: main  # Or you can specify a version tag for controlled updates, like `ref: v2024.12.2`
        refresh: 5min
        files:
@@ -251,7 +253,7 @@ Follow these steps to get your TX Ultimate device up and running with ESPHome.
    ref: v2024.12.2  # Using specific version for controlled updates
    ```
     **Notes:**
-      - [Click here](https://github.com/edwardtfn/TX-Ultimate-Easy/tags) for a full list of versions available.
+      - [Click here](https://github.com/GuyZipory/TX-Ultimate-Easy/tags) for a full list of versions available.
       - [Click here](TX-Ultimate-Easy-ESPHome.yaml)
         for the latest version of this yaml.
 5. Click "Save" and then "Install"
@@ -319,7 +321,7 @@ substitutions:
 
 packages:
   remote_package:
-    url: https://github.com/edwardtfn/TX-Ultimate-Easy
+    url: https://github.com/GuyZipory/TX-Ultimate-Easy
     ref: main  # Or you can specify a version tag for controlled updates, like `ref: v2024.12.2`
     refresh: 5min
     files:
@@ -496,7 +498,7 @@ Please ensure your code follows our standards:
 
 Need help? Here are your options:
 
-- **Bug Reports & Feature Requests**: Use [GitHub Issues](https://github.com/edwardtfn/TX-Ultimate-Easy/issues)
+- **Bug Reports & Feature Requests**: Use [GitHub Issues](https://github.com/GuyZipory/TX-Ultimate-Easy/issues)
     for all bug reports and feature requests
 - **Community Chat**: Join our [Discord Server](https://discord.gg/Db6WJWzWuf)
     for discussions and community interaction
@@ -504,7 +506,7 @@ Need help? Here are your options:
 
 Note: For proper tracking and resolution:
 - All bug reports and feature requests must be submitted through GitHub Issues, not Discord
-- Submit issues here: [Issues · edwardtfn/TX-Ultimate-Easy](https://github.com/edwardtfn/TX-Ultimate-Easy/issues)
+- Submit issues here: [Issues · GuyZipory/TX-Ultimate-Easy](https://github.com/GuyZipory/TX-Ultimate-Easy/issues)
 
 [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/edwardfirmo)
 
