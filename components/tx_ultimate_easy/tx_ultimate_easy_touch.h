@@ -33,6 +33,11 @@ namespace esphome {
         constexpr int VALID_DATA_BYTE_2 = 0x01;
         constexpr int VALID_DATA_BYTE_3 = 0x02;
 
+        // A frame is considered complete once the line has been quiet for this long. Comfortably
+        // above the UART's own ~174us RX timeout (rx_timeout: 2 symbols at 115200 baud) and small
+        // next to the ~1.3ms a 15-byte frame already takes to transmit.
+        constexpr uint32_t UART_IDLE_FLUSH_MS = 3;
+
         struct TouchPoint {
             uint8_t button = 0;
             int8_t x = -1;
@@ -155,6 +160,18 @@ namespace esphome {
              * @returns Numeric touch state code corresponding to the TOUCH_STATE_* constants, or -1 if not present/valid.
              */
             int get_touch_state(const std::array<int, UART_RECEIVED_BYTES_SIZE> &bytes);
+
+            /**
+             * Dispatch the buffered frame (if any) and clear the buffer ready for the next one.
+             */
+            void flush_rx_buffer_();
+
+            // Receive state. These persist across loop() calls on purpose: a frame whose bytes
+            // arrive in two chunks used to be discarded, because the tail had no header byte at
+            // index 0 and failed validation - losing the touch event entirely.
+            std::array<int, UART_RECEIVED_BYTES_SIZE> rx_buffer_{};
+            size_t rx_index_ = 0;
+            uint32_t last_byte_time_ = 0;
 
             Trigger<TouchPoint> trigger_touch_event_;
             Trigger<TouchPoint> trigger_touch_;

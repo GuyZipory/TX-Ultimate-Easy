@@ -27,6 +27,7 @@ substitutions:
 
   BUTTON_MULTI_CLICK_DELAY: "250"  # The time to wait for another click, in msec
   BUTTON_PRESS_TIMEOUT: "10000"  # Ignore if button is pressed for longer than this time, in msec
+  # Default only - the live value is the nr_button_long_press_delay number, tunable from HA
   BUTTON_LONG_PRESS_DELAY: "500"  # The time to wait to consider a long press, in msec
 
   # Button numbers constants
@@ -386,7 +387,10 @@ script:
             ESP_LOGI("${TAG_HW_BUTTONS}", "Button press duration: %" PRIu32 " ms", press_duration);
             // Update last release time for inter-click gap detection
             id(last_release_time) = current_time;
-            if (press_duration <= ${BUTTON_LONG_PRESS_DELAY}) { // Short/normal click
+            // Runtime value from HA instead of the compile-time constant, so a slow tap can be
+            // kept a click without reflashing (BUTTON_LONG_PRESS_DELAY is only the default).
+            uint32_t long_press_delay = (uint32_t) nr_button_long_press_delay->state;
+            if (press_duration <= long_press_delay) { // Short/normal click
               // Validate button is still valid (in case swipe/multi-touch happened)
               if (id(button_press_button) > 0 && id(button_press_button) <= 4) {
                 // Don't reset start_time here - let button_action reset it after multi-click delay
@@ -399,8 +403,8 @@ script:
                 id(click_counter) = 0;
                 id(button_press_button) = 0;
               }
-            } else if (press_duration > ${BUTTON_LONG_PRESS_DELAY} and press_duration <= ${BUTTON_PRESS_TIMEOUT}) {
-              // Long press: anything longer than BUTTON_LONG_PRESS_DELAY (and within timeout) is a long press
+            } else if (press_duration > long_press_delay and press_duration <= ${BUTTON_PRESS_TIMEOUT}) {
+              // Long press: anything longer than the long-press delay (and within timeout) is a long press
               // Validate button is still valid (in case swipe/multi-touch happened)
               if (id(button_press_button) > 0 && id(button_press_button) <= 4) {
                 button_action->execute(id(button_press_button), "long_press", 1);

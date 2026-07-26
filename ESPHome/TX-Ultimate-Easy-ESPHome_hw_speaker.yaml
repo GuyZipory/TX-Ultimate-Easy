@@ -237,13 +237,18 @@ script:
     mode: restart
     then:
       - lambda: |-
+          // A multi-touch release IS a release, so honour the same modes the release hook does.
+          // Testing only for "Disabled" made "On press" click twice per tap: once on the press and
+          // again when the panel reported the lift as a multi-touch.
           // Remove this after ESPHome v2026.1.0 is released
           #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          if (sl_touch_speaker_feedback->current_option() != "Disabled") {
+          if (sl_touch_speaker_feedback->current_option() == "On release" or
+              sl_touch_speaker_feedback->current_option() == "Always") {
             speaker_play_click->execute();
           }
           #else
-          if (strcmp(sl_touch_speaker_feedback->current_option(), "Disabled") != 0) {
+          if (strcmp(sl_touch_speaker_feedback->current_option(), "On release") == 0 or
+              strcmp(sl_touch_speaker_feedback->current_option(), "Always") == 0) {
             speaker_play_click->execute();
           }
           #endif

@@ -246,6 +246,24 @@ number:
     optimistic: true
     restore_value: true
 
+  # A press longer than this is reported as a long-press instead of a click, and long-press
+  # is not wired to any relay action - so a slow tap simply does nothing. Raise this if taps
+  # are being missed because the finger lingers.
+  - id: nr_button_long_press_delay
+    name: Button long-press delay
+    icon: mdi:gesture-tap-hold
+    unit_of_measurement: ms
+    mode: box
+    internal: false
+    entity_category: config
+    platform: template
+    min_value: 200
+    max_value: 2000
+    step: 10
+    initial_value: ${BUTTON_LONG_PRESS_DELAY}
+    optimistic: true
+    restore_value: true
+
 script:
   - id: !extend boot_initialize
     then:
@@ -292,6 +310,11 @@ script:
           else
             ESP_LOGW("${TAG_HW_TOUCH}", "Touch panel - Power: OFF");
           ESP_LOGCONFIG("${TAG_HW_TOUCH}", "Touch event duration: %.0fms", nr_touch_duration->state);
+          ESP_LOGCONFIG("${TAG_HW_TOUCH}", "Button multi-click delay: %.0fms", nr_button_multi_click_delay->state);
+          ESP_LOGCONFIG("${TAG_HW_TOUCH}", "Button long-press delay: %.0fms", nr_button_long_press_delay->state);
+          ESP_LOGCONFIG("${TAG_HW_TOUCH}", "Gestures:");
+          ESP_LOGCONFIG("${TAG_HW_TOUCH}", "  Multi-touch: %s", ONOFF(sw_touch_multi_touch_enabled->state));
+          ESP_LOGCONFIG("${TAG_HW_TOUCH}", "  Swipe:       %s", ONOFF(sw_touch_swipe_enabled->state));
 
   - id: !extend dump_config_list_packages
     then:
@@ -348,6 +371,15 @@ script:
       - lambda: |-
           bs_swipe_${ID_SWIPE_LEFT_OR_UP_TEXT}->publish_state(true);
 
+  # ESPHome batches preference writes for ~60s, so a power cut right after flipping a gesture
+  # switch would lose the choice. Same proven pattern as persist_relay_prefs; a local copy is
+  # needed because that one lives in the _standard package while this file is in _core.
+  - id: persist_touch_prefs
+    mode: restart
+    then:
+      - delay: 800ms
+      - lambda: global_preferences->sync();
+
 switch:
   - id: sw_touch_panel_power
     name: Touch panel - Power
@@ -358,6 +390,40 @@ switch:
     restore_mode: ALWAYS_ON
     internal: false
     entity_category: config
+
+  # The touch panel's own MCU classifies the gesture; a plain tap is sometimes reported as a
+  # multi-touch or a swipe, and every gesture cancels the pending click (see buttons_reset_state)
+  # so the relay never toggles. Turning a gesture off here makes its frame fall through to the
+  # normal release path, so the tap still counts. Default ON keeps the original behaviour.
+  - id: sw_touch_multi_touch_enabled
+    name: Touch - Multi-touch gestures
+    icon: mdi:gesture-two-tap
+    platform: template
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    internal: false
+    entity_category: config
+    on_turn_on:
+      then:
+        - script.execute: persist_touch_prefs
+    on_turn_off:
+      then:
+        - script.execute: persist_touch_prefs
+
+  - id: sw_touch_swipe_enabled
+    name: Touch - Swipe gestures
+    icon: mdi:gesture-swipe
+    platform: template
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    internal: false
+    entity_category: config
+    on_turn_on:
+      then:
+        - script.execute: persist_touch_prefs
+    on_turn_off:
+      then:
+        - script.execute: persist_touch_prefs
 
 tx_ultimate_easy:
   uart: uart_touch
@@ -374,6 +440,14 @@ tx_ultimate_easy:
   on_multi_touch_release:
     then:
       - lambda: |-
+          // Multi-touch disabled: treat this as an ordinary release so the pending click still
+          // completes and toggles the relay, instead of being cancelled by buttons_reset_state.
+          if (!sw_touch_multi_touch_enabled->state) {
+            ESP_LOGD("${TAG_HW_TOUCH}", "Multi-touch is disabled - handling as a release");
+            ESP_LOGI("${TAG_HW_TOUCH}", "Released");
+            touch_on_release->execute();
+            return;
+          }
           esphome::tx_ultimate_easy::fire_ha_event("touch", "multi_touch", {
             {"action", "release"},
             {"position", std::to_string(touch.x)}
@@ -401,6 +475,13 @@ tx_ultimate_easy:
   on_swipe_left:
     then:
       - lambda: |-
+          // Swipes disabled: treat as an ordinary release (see on_multi_touch_release).
+          if (!sw_touch_swipe_enabled->state) {
+            ESP_LOGD("${TAG_HW_TOUCH}", "Swipe is disabled - handling as a release");
+            ESP_LOGI("${TAG_HW_TOUCH}", "Released");
+            touch_on_release->execute();
+            return;
+          }
           esphome::tx_ultimate_easy::fire_ha_event("touch", "swipe", {
             {"action", "${ID_SWIPE_LEFT_OR_UP_TEXT}"},
             {"swipe-direction", "${ID_SWIPE_LEFT_OR_UP_TEXT}"},
@@ -412,6 +493,13 @@ tx_ultimate_easy:
   on_swipe_right:
     then:
       - lambda: |-
+          // Swipes disabled: treat as an ordinary release (see on_multi_touch_release).
+          if (!sw_touch_swipe_enabled->state) {
+            ESP_LOGD("${TAG_HW_TOUCH}", "Swipe is disabled - handling as a release");
+            ESP_LOGI("${TAG_HW_TOUCH}", "Released");
+            touch_on_release->execute();
+            return;
+          }
           esphome::tx_ultimate_easy::fire_ha_event("touch", "swipe", {
             {"action", "${ID_SWIPE_RIGHT_OR_DOWN_TEXT}"},
             {"swipe-direction", "${ID_SWIPE_RIGHT_OR_DOWN_TEXT}"},

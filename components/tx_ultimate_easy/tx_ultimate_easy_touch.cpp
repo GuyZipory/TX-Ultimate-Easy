@@ -2,6 +2,7 @@
 
 #ifdef TX_ULTIMATE_EASY_HW_TOUCH
 
+#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "tx_ultimate_easy_touch.h"
 #include <cinttypes>
@@ -18,26 +19,41 @@ namespace esphome {
         }
 
         void TxUltimateEasy::loop() {
-            bool found = false;
-            std::array<int, UART_RECEIVED_BYTES_SIZE> uart_received_bytes{};
-            int byte = -1;
-            int i = 0;
+            bool byte_received = false;
 
             while (this->available()) {
-                byte = this->read();
+                const int byte = this->read();
+                byte_received = true;
+                // A header byte ends the previous frame and starts a new one.
                 if (byte == HEADER_BYTE_1) {
-                    this->handle_touch(uart_received_bytes);
-                    i = 0;
+                    this->flush_rx_buffer_();
                 }
-                if (i < UART_RECEIVED_BYTES_SIZE) {
-                    uart_received_bytes[i] = byte;
-                    i++;
-                }
-                if (byte != 0x00) {
-                    found = true;
+                if (this->rx_index_ < static_cast<size_t>(UART_RECEIVED_BYTES_SIZE)) {
+                    this->rx_buffer_[this->rx_index_] = byte;
+                    this->rx_index_++;
                 }
             }
-            if (found) this->handle_touch(uart_received_bytes);
+
+            if (byte_received) {
+                // More bytes of this frame may still be on the wire; wait for the line to go idle
+                // rather than dispatching a half-received frame.
+                this->last_byte_time_ = millis();
+                return;
+            }
+
+            if (this->rx_index_ > 0 && (millis() - this->last_byte_time_) >= UART_IDLE_FLUSH_MS) {
+                this->flush_rx_buffer_();
+            }
+        }
+
+        void TxUltimateEasy::flush_rx_buffer_() {
+            if (this->rx_index_ > 0) {
+                this->handle_touch(this->rx_buffer_);
+            }
+            // Must clear explicitly: the buffer now persists across loop() calls, so without this
+            // a short frame would inherit the tail of the previous, longer one.
+            this->rx_buffer_.fill(0);
+            this->rx_index_ = 0;
         }
 
         void TxUltimateEasy::handle_touch(const std::array<int, UART_RECEIVED_BYTES_SIZE> &uart_received_bytes) {
@@ -49,6 +65,15 @@ namespace esphome {
             }
             if (this->is_valid_data(uart_received_bytes)) {
                 this->send_touch_(this->get_touch_point(uart_received_bytes));
+            } else if (uart_received_bytes[0] != 0x00) {
+                // Rejected frames are otherwise invisible, which makes a missing press/release
+                // impossible to tell apart from one the panel never sent. Log it at DEBUG so a
+                // normal log capture shows which it was. Buffers starting with 0x00 are stray
+                // idle bytes, not frames, and were already discarded silently before.
+                ESP_LOGD(TAG, "Dropped frame: %02X %02X %02X %02X %02X %02X %02X %02X",
+                         uart_received_bytes[0], uart_received_bytes[1], uart_received_bytes[2],
+                         uart_received_bytes[3], uart_received_bytes[4], uart_received_bytes[5],
+                         uart_received_bytes[6], uart_received_bytes[7]);
             }
         }
 
