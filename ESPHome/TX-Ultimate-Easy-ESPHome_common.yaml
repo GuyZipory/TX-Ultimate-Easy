@@ -88,8 +88,12 @@ esphome:
     version: ${version}
   build_flags:
     - -D TX_ULTIMATE_EASY_COMMON
-    - -D TX_ULTIMATE_EASY_FIRMWARE_VERSION="${version}"
-    - -D TX_ULTIMATE_EASY_DEVICE_FORMAT="${device_format}"
+    # Both values are deliberately UNQUOTED. The consumer wraps them in STRINGIFY(), which supplies
+    # the quotes, and an embedded `"` here is silently eaten by the native ESP-IDF build: CMake ends
+    # the quoted argument at the inner quote, so the compiler receives `-D ..._VERSION="` with the
+    # value gone. Keep them bare.
+    - -D TX_ULTIMATE_EASY_FIRMWARE_VERSION=${version}
+    - -D TX_ULTIMATE_EASY_DEVICE_FORMAT=${device_format}
     - -D TX_ULTIMATE_EASY_GANG_COUNT=${gang_count}
     - -D TX_ULTIMATE_EASY_IS_EU_MODEL=${1 if IS_EU_MODEL else 0}
     - -D TX_ULTIMATE_EASY_IS_US_MODEL=${1 if IS_US_MODEL else 0}

@@ -9,8 +9,10 @@
 #include <map>
 #include <string>
 
+// Unquoted on purpose: the consumer stringifies this with STRINGIFY(),
+// which adds the quotes.
 #ifndef TX_ULTIMATE_EASY_FIRMWARE_VERSION
-#define TX_ULTIMATE_EASY_FIRMWARE_VERSION "unknown"
+#define TX_ULTIMATE_EASY_FIRMWARE_VERSION unknown
 #endif
 
 namespace esphome {
