@@ -179,6 +179,35 @@ suppresses vibration and click-sound feedback. The state survives reboots.
 4. To change the color: disable Night Mode, adjust **Night Mode - Color**, then re-enable — this re-snapshots the color and persists it across reboots
 5. Disable the switch to restore normal relay indicator behavior — **Lights (all)** is unaffected by night mode
 
+### Advanced Tuning (optional)
+
+Two optional substitutions free up IRAM on newer ESP32 silicon. Both default to the safe, existing behavior — **only set them once you have confirmed your device supports them**, by reading its boot log.
+
+```yaml
+substitutions:
+  esp32_minimum_chip_revision: "3.1"   # default: "3.0"
+  esp32_sram1_as_iram: "true"          # default: "false"
+```
+
+- **`esp32_minimum_chip_revision`** — frees ~10 kB of IRAM.
+  Safe only if your boot log reports `Chip rev >= 3.0 detected` **and** the chip is revision 3.1 or newer.
+  The bootloader will refuse to start on older silicon.
+- **`esp32_sram1_as_iram`** — frees ~40 kB of IRAM.
+  Safe only if your boot log says `Bootloader supports SRAM1 as IRAM`.
+  Requires a bootloader from ESP-IDF v5.1 or newer.
+
+> [!WARNING]
+> Enabling `esp32_sram1_as_iram` on a device with an older bootloader means the app will not boot. **OTA updates cannot replace the bootloader** — recovery requires a USB flash. Check the boot log first.
+
+To read the log line, look near the top of the device's log output right after a restart:
+
+```text
+[W][app:168]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" ...
+[W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true ...
+```
+
+ESPHome only prints each line when that option is actually applicable to your hardware.
+
 ## Key Features
 
 - **Home Assistant UI Configuration**: Manage all device settings directly through the Home Assistant interface

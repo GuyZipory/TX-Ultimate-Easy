@@ -27,6 +27,17 @@ substitutions:
 
   DUMP_CONFIG_CALLER_DELAY: 5s  # Delay to dump config after requested
 
+  # Minimum ESP32 silicon revision the firmware will run on. `3.0` is this project's long-standing
+  # requirement. Raising it to `3.1` frees ~10kB of IRAM, but the bootloader then refuses to start
+  # on anything older, so it is opt-in per device.
+  esp32_minimum_chip_revision: "3.0"
+
+  # Use the SRAM1 region as IRAM (+40kB). Needs a bootloader from ESP-IDF v5.1 or newer.
+  # DANGER: on a device with an older bootloader the app will not boot, and OTA cannot update the
+  # bootloader — recovery needs a USB flash. Opt in per device only after confirming the boot log
+  # says "Bootloader supports SRAM1 as IRAM".
+  esp32_sram1_as_iram: "false"
+
   TAG_COMMON: tx_ultimate_easy.common
 
 api:
@@ -62,8 +73,10 @@ esp32:
     type: esp-idf
     advanced:
       loop_task_stack_size: 16384
-    sdkconfig_options:
-      CONFIG_ESP32_REV_MIN_3: y  # Require ESP32 revision 3 or newer
+      # Replaces the raw `CONFIG_ESP32_REV_MIN_3: y` sdkconfig option: ESPHome sets the whole
+      # CONFIG_ESP32_REV_MIN_* family from this key, so it is the supported way to say the same thing.
+      minimum_chip_revision: ${esp32_minimum_chip_revision}
+      sram1_as_iram: ${esp32_sram1_as_iram}
 
 esphome:
   name: ${name}
@@ -73,15 +86,17 @@ esphome:
   project:
     name: "guyzipory.tx_ultimate_easy"
     version: ${version}
-  platformio_options:
-    build_flags:
-      - -D TX_ULTIMATE_EASY_COMMON
-      - -D TX_ULTIMATE_EASY_FIRMWARE_VERSION="${version}"
-      - -D TX_ULTIMATE_EASY_DEVICE_FORMAT="${device_format}"
-      - -D TX_ULTIMATE_EASY_GANG_COUNT=${gang_count}
-      - -D TX_ULTIMATE_EASY_IS_EU_MODEL=${1 if IS_EU_MODEL else 0}
-      - -D TX_ULTIMATE_EASY_IS_US_MODEL=${1 if IS_US_MODEL else 0}
+  build_flags:
+    - -D TX_ULTIMATE_EASY_COMMON
+    - -D TX_ULTIMATE_EASY_FIRMWARE_VERSION="${version}"
+    - -D TX_ULTIMATE_EASY_DEVICE_FORMAT="${device_format}"
+    - -D TX_ULTIMATE_EASY_GANG_COUNT=${gang_count}
+    - -D TX_ULTIMATE_EASY_IS_EU_MODEL=${1 if IS_EU_MODEL else 0}
+    - -D TX_ULTIMATE_EASY_IS_US_MODEL=${1 if IS_US_MODEL else 0}
 
+  # MUST stay a list. Package merging only concatenates when both sides are lists
+  # (esphome/config_helpers.py merge_config); if a package declares `on_boot` as a mapping it
+  # replaces this whole ladder instead of adding to it, and every handler below is silently lost.
   on_boot:
     - priority: 1000  # Very early in boot process
       then:

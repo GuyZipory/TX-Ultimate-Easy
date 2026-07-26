@@ -16,18 +16,20 @@ substitutions:
   night_mode_sync_leds_delay: 20ms
 
 esphome:
+  # MUST stay a list, even with a single entry. Package merging only concatenates when both
+  # sides are lists (esphome/config_helpers.py merge_config); a mapping here silently replaces
+  # the whole on_boot list in _common.yaml, wiping out the boot ladder.
   on_boot:
     # priority: -200 ensures all hardware components are ready before we touch LEDs.
-    priority: -200
-    then:
-      - if:
-          condition:
-            lambda: "return sw_night_mode->state;"
-          then:
-            - script.execute: night_mode_apply
-  platformio_options:
-    build_flags:
-      - -D TX_ULTIMATE_EASY_NIGHT_MODE
+    - priority: -200
+      then:
+        - if:
+            condition:
+              lambda: "return sw_night_mode->state;"
+            then:
+              - script.execute: night_mode_apply
+  build_flags:
+    - -D TX_ULTIMATE_EASY_NIGHT_MODE
 
 globals:
   # ─── LED color/brightness snapshot ─ persists across reboots so the color ───
