@@ -38,9 +38,11 @@ substitutions:
   # removed in bfd4e45; `restore_from_nvs` in _common.yaml is now empty and is extended
   # only by _hw_buttons.yaml for the button-action selects).
   # Take care changing these: relay state is persisted TWICE - once by light_output_N and
-  # again by sw_relay_N - and `internal:` does not stop an entity restoring. If the two
-  # disagree at boot the relay visibly pulses. Relay toggles now call persist_relay_prefs
-  # so both keys are flushed together.
+  # again by sw_relay_N - and `internal:` does not stop an entity restoring. The two are
+  # set up back to back (LightState 799, TemplateSwitch 798), so a disagreement resolves
+  # in microseconds rather than being visible - but it can still leave the relay in the
+  # wrong final state. Relay toggles call persist_relay_prefs so both keys are flushed
+  # together and cannot drift apart across a reboot.
   RELAYS_LIGHT_RESTORE_MODE: RESTORE_DEFAULT_OFF
   RELAYS_LIGHT_PARTITION_RESTORE_MODE: RESTORE_DEFAULT_OFF
   RELAYS_EXPOSE_LEDS_TO_HA_RESTORE_MODE: RESTORE_DEFAULT_OFF
@@ -105,17 +107,11 @@ light:
       then:
         - lambda: |-
             id(relay_1_state) = true;
-            // Boot-ordering probe: during boot this fires from the light's own
-            // preference restore. light_output_N and sw_relay_N each persist their
-            // own state, so comparing these timestamps against the sw_relay_N lines
-            // shows whether the two owners restored to the same value.
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 1 light -> ON (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
     on_turn_off:
       then:
         - lambda: |-
             id(relay_1_state) = false;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 1 light -> OFF (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
   - id: light_output_2
     name: Light output 2
@@ -127,13 +123,11 @@ light:
       then:
         - lambda: |-
             id(relay_2_state) = true;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 2 light -> ON (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
     on_turn_off:
       then:
         - lambda: |-
             id(relay_2_state) = false;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 2 light -> OFF (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
   - id: light_output_3
     name: Light output 3
@@ -145,13 +139,11 @@ light:
       then:
         - lambda: |-
             id(relay_3_state) = true;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 3 light -> ON (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
     on_turn_off:
       then:
         - lambda: |-
             id(relay_3_state) = false;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 3 light -> OFF (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
   - id: light_output_4
     name: Light output 4
@@ -163,13 +155,11 @@ light:
       then:
         - lambda: |-
             id(relay_4_state) = true;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 4 light -> ON (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
     on_turn_off:
       then:
         - lambda: |-
             id(relay_4_state) = false;
-            ESP_LOGD("${TAG_HW_RELAYS}", "Relay 4 light -> OFF (t=%" PRIu32 "ms)", millis());
             show_relay_status->execute();
 
   # ── Per-relay color pickers (config; each persists its own color in NVS) ──
@@ -1017,19 +1007,13 @@ switch:
     lambda: |-
       return id(relay_1_state);
     turn_on_action:
-      - lambda: |-
-          id(relay_1_state) = true;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 1 switch -> ON (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_1_state) = true;
       - light.turn_on: light_output_1
-      # Relay state is persisted by both this switch and light_output_1, and ESPHome
-      # batches preference writes (~60s). Without an explicit flush a toggle followed
-      # by an OTA or power cut comes back stale - and the two owners can disagree,
-      # which shows up as the relay pulsing off/on late in boot.
+      # ESPHome batches preference writes (~60s), so without an explicit flush a relay
+      # toggled shortly before an OTA or a power cut comes back in the stale state.
       - script.execute: persist_relay_prefs
     turn_off_action:
-      - lambda: |-
-          id(relay_1_state) = false;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 1 switch -> OFF (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_1_state) = false;
       - light.turn_off: light_output_1
       - script.execute: persist_relay_prefs
 
@@ -1041,15 +1025,11 @@ switch:
     lambda: |-
       return id(relay_2_state);
     turn_on_action:
-      - lambda: |-
-          id(relay_2_state) = true;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 2 switch -> ON (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_2_state) = true;
       - light.turn_on: light_output_2
       - script.execute: persist_relay_prefs
     turn_off_action:
-      - lambda: |-
-          id(relay_2_state) = false;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 2 switch -> OFF (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_2_state) = false;
       - light.turn_off: light_output_2
       - script.execute: persist_relay_prefs
 
@@ -1061,15 +1041,11 @@ switch:
     lambda: |-
       return id(relay_3_state);
     turn_on_action:
-      - lambda: |-
-          id(relay_3_state) = true;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 3 switch -> ON (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_3_state) = true;
       - light.turn_on: light_output_3
       - script.execute: persist_relay_prefs
     turn_off_action:
-      - lambda: |-
-          id(relay_3_state) = false;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 3 switch -> OFF (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_3_state) = false;
       - light.turn_off: light_output_3
       - script.execute: persist_relay_prefs
 
@@ -1081,15 +1057,11 @@ switch:
     lambda: |-
       return id(relay_4_state);
     turn_on_action:
-      - lambda: |-
-          id(relay_4_state) = true;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 4 switch -> ON (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_4_state) = true;
       - light.turn_on: light_output_4
       - script.execute: persist_relay_prefs
     turn_off_action:
-      - lambda: |-
-          id(relay_4_state) = false;
-          ESP_LOGD("${TAG_HW_RELAYS}", "Relay 4 switch -> OFF (t=%" PRIu32 "ms)", millis());
+      - lambda: id(relay_4_state) = false;
       - light.turn_off: light_output_4
       - script.execute: persist_relay_prefs
 ...
