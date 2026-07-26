@@ -109,7 +109,12 @@ script:
   # Waits for relay boot initialization so it is safe to call from on_boot.
   - id: night_mode_apply
     then:
-      - script.wait: boot_initialize_relays
+      # Bounded wait for relay boot initialization. script.wait has no timeout, so
+      # wait_until is used as defense-in-depth against an indefinite block on boot.
+      - wait_until:
+          condition:
+            lambda: return id(boot_initialization_relays);
+          timeout: 10s
       # Re-check the flag: night mode may have been disabled while we were waiting.
       - if:
           condition:
