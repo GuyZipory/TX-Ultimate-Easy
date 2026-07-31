@@ -216,7 +216,7 @@ esphome:
 
 number:
   - id: nr_touch_duration
-    name: Touch event duration
+    name: Touch - Event duration
     icon: mdi:timer-cog-outline
     unit_of_measurement: ms
     # mode: box
@@ -231,7 +231,7 @@ number:
     restore_value: true
 
   - id: nr_button_multi_click_delay
-    name: Button multi-click delay
+    name: Button - Multi-click delay
     icon: mdi:timer-outline
     unit_of_measurement: ms
     mode: box
@@ -249,7 +249,7 @@ number:
   # is not wired to any relay action - so a slow tap simply does nothing. Raise this if taps
   # are being missed because the finger lingers.
   - id: nr_button_long_press_delay
-    name: Button long-press delay
+    name: Button - Long-press delay
     icon: mdi:gesture-tap-hold
     unit_of_measurement: ms
     mode: box
