@@ -18,7 +18,7 @@ substitutions:
   TAG_HW_VIBRATION: tx_ultimate_easy.vibration
 
 binary_sensor:
-  # Off by default: the motor runs for ~100ms, so this is almost never observable in HA.
+  # Off by default: the motor runs for ~150ms, so this is almost never observable in HA.
   # The `Vibrate` button and the HA events cover the useful cases; enable it manually if
   # you specifically want to watch the motor line.
   - id: bs_vibrating
@@ -44,6 +44,9 @@ esphome:
     - -D TX_ULTIMATE_EASY_HW_VIBRATION
 
 number:
+  # How long the motor is driven per haptic pulse. The ERM motor needs time to spin up, so very
+  # short values are imperceptible - 150ms is a solid tick. Only takes effect once
+  # `Touch - Vibration feedback` is enabled (it ships Disabled) or the `Vibrate` button is pressed.
   - id: nr_vibrating_duration
     name: Vibration - Duration
     icon: mdi:vibrate
@@ -54,7 +57,7 @@ number:
     min_value: 1
     max_value: 500
     step: 1
-    initial_value: 15
+    initial_value: 150
     optimistic: true
     restore_value: true
 

@@ -215,6 +215,9 @@ esphome:
     - -D TX_ULTIMATE_EASY_HW_TOUCH
 
 number:
+  # How long the event binary_sensors above stay ON after firing. This does NOT gate gesture
+  # detection and adds no latency to the relay path - it is only the pulse width seen by HA, plus
+  # the window in which hw_relays suppresses a toggle right after a swipe/multi-touch.
   - id: nr_touch_duration
     name: Touch - Event duration
     icon: mdi:timer-cog-outline
@@ -226,10 +229,13 @@ number:
     min_value: 10
     max_value: 1500
     step: 1
-    initial_value: 250
+    initial_value: 100
     optimistic: true
     restore_value: true
 
+  # The window to wait for a second click. hw_relays extends the same script, so this is also the
+  # delay before the relay toggles. Ships at 0 for an instant toggle, which means double-click and
+  # multiple-click do not fire; raise it (~250) to get them back at the cost of that lag.
   - id: nr_button_multi_click_delay
     name: Button - Multi-click delay
     icon: mdi:timer-outline
@@ -246,8 +252,10 @@ number:
     restore_value: true
 
   # A press longer than this is reported as a long-press instead of a click, and long-press
-  # is not wired to any relay action - so a slow tap simply does nothing. Raise this if taps
-  # are being missed because the finger lingers.
+  # is not wired to any relay action - so a press over this threshold simply does nothing.
+  # Ships at 2000 (the maximum) so a slow or lingering tap still toggles the relay: long-press is
+  # effectively off unless you deliberately hold. Lower it if you want long-press automations to
+  # trigger sooner, accepting that taps held past the new value stop working.
   - id: nr_button_long_press_delay
     name: Button - Long-press delay
     icon: mdi:gesture-tap-hold
@@ -393,13 +401,16 @@ switch:
   # The touch panel's own MCU classifies the gesture; a plain tap is sometimes reported as a
   # multi-touch or a swipe, and every gesture cancels the pending click (see buttons_reset_state)
   # so the relay never toggles. Turning a gesture off here makes its frame fall through to the
-  # normal release path, so the tap still counts. Default ON keeps the original behaviour.
+  # normal release path, so the tap still counts. Both ship OFF so the panel behaves as a plain
+  # single-tap switch out of the box - the matching swipe/multi-touch event sensors are already
+  # disabled_by_default, so leaving the engine on only cost taps without exposing anything.
+  # Turn either on to restore the upstream gesture behaviour and its HA events.
   - id: sw_touch_multi_touch_enabled
     name: Touch - Multi-touch gestures
     icon: mdi:gesture-two-tap
     platform: template
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: RESTORE_DEFAULT_OFF
     internal: false
     entity_category: config
     on_turn_on:
@@ -414,7 +425,7 @@ switch:
     icon: mdi:gesture-swipe
     platform: template
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: RESTORE_DEFAULT_OFF
     internal: false
     entity_category: config
     on_turn_on:

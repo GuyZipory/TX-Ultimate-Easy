@@ -25,10 +25,20 @@ substitutions:
   BUTTON_3_ACTION_FAILSAFE_TEXT: "Relay 3 (API failsafe only)"
   BUTTON_4_ACTION_FAILSAFE_TEXT: "Relay 4 (API failsafe only)"
 
-  BUTTON_MULTI_CLICK_DELAY: "250"  # The time to wait for another click, in msec
+  # Default only - the live value is the nr_button_multi_click_delay number, tunable from HA.
+  # This is the window the click handler waits for a second click, and hw_relays extends the same
+  # script, so it is also the delay before the relay toggles. Shipped at 0 for an instant relay
+  # response. The trade-off is real: at 0 the gap_window check below makes every press start a new
+  # sequence, so click_counter never reaches 2 and double-click / multiple-click never fire. There
+  # is no middle ground - a usable double-click window (~250ms) IS the toggle lag. Raise this in HA
+  # to trade snappiness back for double-click.
+  BUTTON_MULTI_CLICK_DELAY: "0"  # The time to wait for another click, in msec
   BUTTON_PRESS_TIMEOUT: "10000"  # Ignore if button is pressed for longer than this time, in msec
-  # Default only - the live value is the nr_button_long_press_delay number, tunable from HA
-  BUTTON_LONG_PRESS_DELAY: "500"  # The time to wait to consider a long press, in msec
+  # Default only - the live value is the nr_button_long_press_delay number, tunable from HA.
+  # Anything longer than this is a long press, and long press is wired to no relay action - so a
+  # press over this threshold does nothing at all. Shipped at 2000 so a slow or lingering tap still
+  # toggles the relay; you must deliberately hold for 2s to get a long press.
+  BUTTON_LONG_PRESS_DELAY: "2000"  # The time to wait to consider a long press, in msec
 
   # Button numbers constants
   BUTTON_1_ID: '1'
