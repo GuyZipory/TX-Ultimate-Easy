@@ -98,7 +98,7 @@ globals:
 light:
   # These lights are used for the physical relays to be shown as lights
   - id: light_output_1
-    name: Light output 1
+    name: Relay 1 light
     output: output_relay_1
     platform: binary
     internal: ${SL_RELAY_1_MODE != 2 or gang_count < 1}
@@ -114,7 +114,7 @@ light:
             id(relay_1_state) = false;
             show_relay_status->execute();
   - id: light_output_2
-    name: Light output 2
+    name: Relay 2 light
     output: output_relay_2
     platform: binary
     internal: ${SL_RELAY_2_MODE != 2 or gang_count < 2}
@@ -130,7 +130,7 @@ light:
             id(relay_2_state) = false;
             show_relay_status->execute();
   - id: light_output_3
-    name: Light output 3
+    name: Relay 3 light
     output: output_relay_3
     platform: binary
     internal: ${SL_RELAY_3_MODE != 2 or gang_count < 3}
@@ -146,7 +146,7 @@ light:
             id(relay_3_state) = false;
             show_relay_status->execute();
   - id: light_output_4
-    name: Light output 4
+    name: Relay 4 light
     output: output_relay_4
     platform: binary
     internal: ${SL_RELAY_4_MODE != 2 or gang_count < 4}
@@ -162,12 +162,17 @@ light:
             id(relay_4_state) = false;
             show_relay_status->execute();
 
-  # ── Per-relay color pickers (config; each persists its own color in NVS) ──
-  # These are color stores only (no-op outputs). The chosen color is read in
-  # light_set_state and applied to that relay's indicator.
+  # ── Per-relay indicator style (config; each persists its own state in NVS) ──
+  # These drive no hardware of their own (the outputs are no-ops) — they are the style
+  # store for that relay's LED indicator, read back in light_set_state / show_relay_status:
+  #   on/off     → whether this relay lights the ring at all (master enable)
+  #   colour     → the indicator hue
+  #   brightness → how bright the indicator is
+  # ESPHome normalises RGB so the largest channel is always 1.0 and keeps the intensity in
+  # `brightness` (light_color_values.h, normalize_color), which is why both have to be read.
   - &relay_color_light
     id: relay_1_color
-    name: Relay 1 color
+    name: Relay 1 indicator
     platform: rgb
     red: relay_1_color_r_out
     green: relay_1_color_g_out
@@ -182,21 +187,21 @@ light:
         - script.execute: show_relay_status
         - script.execute: persist_relay_prefs
   - id: relay_2_color
-    name: Relay 2 color
+    name: Relay 2 indicator
     red: relay_2_color_r_out
     green: relay_2_color_g_out
     blue: relay_2_color_b_out
     internal: ${gang_count < 2}
     <<: *relay_color_light
   - id: relay_3_color
-    name: Relay 3 color
+    name: Relay 3 indicator
     red: relay_3_color_r_out
     green: relay_3_color_g_out
     blue: relay_3_color_b_out
     internal: ${gang_count < 3}
     <<: *relay_color_light
   - id: relay_4_color
-    name: Relay 4 color
+    name: Relay 4 indicator
     red: relay_4_color_r_out
     green: relay_4_color_g_out
     blue: relay_4_color_b_out
@@ -711,38 +716,31 @@ script:
           ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Light modes: %s", YESNO(id(boot_initialization_relays_light_modes)));
           ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay modes: %s", YESNO(id(boot_initialization_relays_relay_modes)));
 
-          // Relay's LEDs modes
+          // Relay LED indicators. All four selects/lights are always instantiated (only their
+          // `internal:` flag varies with gang_count), so indexing them is safe.
+          // Assigning current_option() into a std::string works on every supported ESPHome:
+          // it returns StringRef since 2026.x, which converts implicitly (core/string_ref.h).
           #if TX_ULTIMATE_EASY_GANG_COUNT > 1
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relays LEDs modes:");
+          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relay LED indicators:");
           #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relay LEDs mode:");
+          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "Relay LED indicator:");
           #endif  // TX_ULTIMATE_EASY_GANG_COUNT > 1
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 1: %s", sl_relay_1_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 1: %s", sl_relay_1_light_mode->current_option());
-          #endif
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 2: %s", sl_relay_2_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 2: %s", sl_relay_2_light_mode->current_option());
-          #endif
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 2
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 3: %s", sl_relay_3_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 3: %s", sl_relay_3_light_mode->current_option());
-          #endif
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 3
-          #if TX_ULTIMATE_EASY_GANG_COUNT >= 4
-          #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 0, 0)  // Code for ESPHome newer than v2026.0.0
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 4: %s", sl_relay_4_light_mode->current_option().c_str());
-          #else
-          ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay 4: %s", sl_relay_4_light_mode->current_option());
-          #endif
-          #endif  // TX_ULTIMATE_EASY_GANG_COUNT >= 4
+          {
+            esphome::select::Select *areas[] = {sl_relay_1_light_mode, sl_relay_2_light_mode,
+                                                sl_relay_3_light_mode, sl_relay_4_light_mode};
+            light::LightState *styles[] = {id(relay_1_color), id(relay_2_color),
+                                           id(relay_3_color), id(relay_4_color)};
+            for (uint8_t i = 0; i < TX_ULTIMATE_EASY_GANG_COUNT; i++) {
+              const std::string area = areas[i]->current_option();
+              const auto &sv = styles[i]->current_values;
+              ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Relay %" PRIu8 ": %s · area %s · %.0f%% brightness",
+                            i + 1, ONOFF(sv.is_on()), area.c_str(), sv.get_brightness() * 100.0f);
+            }
+          }
+          static const uint8_t LIGHT_BRIGHTNESS_TURN_ON = ${LIGHT_BRIGHTNESS_TURN_ON};
+          if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
+            ESP_LOGCONFIG("${TAG_HW_RELAYS}", "  Overridden by LIGHT_BRIGHTNESS_TURN_ON: %" PRIu8 "%%",
+                          LIGHT_BRIGHTNESS_TURN_ON);
 
   - id: !extend dump_config_list_packages
     then:
@@ -775,6 +773,13 @@ script:
           }
           #endif  // TX_ULTIMATE_EASY_NIGHT_MODE
 
+          // The user is driving the ring by hand (LED ring is on) — it owns the strip until
+          // it is turned off, at which point its on_turn_off handler repaints the indicators.
+          if (id(leds_manual_override)) {
+            ESP_LOGV("${TAG_HW_RELAYS}", "Manual LED control active - skipping LED update");
+            return;
+          }
+
           ESP_LOGV("${TAG_HW_RELAYS}", "script: light_set_state");
           ESP_LOGV("${TAG_HW_RELAYS}", "  light_group: %" PRIu8, light_group);
           ESP_LOGV("${TAG_HW_RELAYS}", "  light_index: %" PRIu8, light_index);
@@ -784,14 +789,29 @@ script:
           static const uint32_t LIGHT_TRANSITION_TURN_OFF = ${LIGHT_TRANSITION_TURN_OFF};
           static const uint8_t LIGHT_BRIGHTNESS_TURN_ON = ${LIGHT_BRIGHTNESS_TURN_ON};
 
-          // Per-relay color from that relay's color picker (defaults to white).
-          float cr = 1.0f, cg = 1.0f, cb = 1.0f;
+          // Per-relay style from that relay's indicator light (defaults to white, full).
+          // get_red/green/blue() carry only the hue: normalize_color() rescales them so the
+          // largest channel is 1.0 and parks the intensity in brightness, so reading the
+          // channels alone would pin every indicator at full brightness.
+          float cr = 1.0f, cg = 1.0f, cb = 1.0f, cbri = 1.0f;
+          light::LightState *style = nullptr;
           switch (light_index) {
-            case 0: cr = id(relay_1_color)->current_values.get_red(); cg = id(relay_1_color)->current_values.get_green(); cb = id(relay_1_color)->current_values.get_blue(); break;
-            case 1: cr = id(relay_2_color)->current_values.get_red(); cg = id(relay_2_color)->current_values.get_green(); cb = id(relay_2_color)->current_values.get_blue(); break;
-            case 2: cr = id(relay_3_color)->current_values.get_red(); cg = id(relay_3_color)->current_values.get_green(); cb = id(relay_3_color)->current_values.get_blue(); break;
-            case 3: cr = id(relay_4_color)->current_values.get_red(); cg = id(relay_4_color)->current_values.get_green(); cb = id(relay_4_color)->current_values.get_blue(); break;
+            case 0: style = id(relay_1_color); break;
+            case 1: style = id(relay_2_color); break;
+            case 2: style = id(relay_3_color); break;
+            case 3: style = id(relay_4_color); break;
           }
+          if (style != nullptr) {
+            const auto &sv = style->current_values;
+            cr = sv.get_red();
+            cg = sv.get_green();
+            cb = sv.get_blue();
+            cbri = sv.get_brightness();
+          }
+          // Legacy build-time override: when set (1-100) it wins over the per-relay value.
+          // 0 (the default) means "use whatever the indicator light says".
+          if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
+            cbri = LIGHT_BRIGHTNESS_TURN_ON / 100.0f;
 
           switch (light_group) {
             case 1:
@@ -807,8 +827,7 @@ script:
                 call.set_rgb(cr, cg, cb);
                 if (LIGHT_TRANSITION_TURN_ON > 0)
                   call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
-                if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
-                  call.set_brightness(LIGHT_BRIGHTNESS_TURN_ON / 100.0f);
+                call.set_brightness(cbri);
                 call.perform();
               } else {
                 ESP_LOGI("${TAG_HW_RELAYS}",
@@ -832,8 +851,7 @@ script:
                 call.set_rgb(cr, cg, cb);
                 if (LIGHT_TRANSITION_TURN_ON > 0)
                   call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
-                if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
-                  call.set_brightness(LIGHT_BRIGHTNESS_TURN_ON / 100.0f);
+                call.set_brightness(cbri);
                 call.perform();
               } else {
                 ESP_LOGI("${TAG_HW_RELAYS}",
@@ -861,8 +879,7 @@ script:
                 call.set_rgb(cr, cg, cb);
                 if (LIGHT_TRANSITION_TURN_ON > 0)
                   call.set_transition_length(LIGHT_TRANSITION_TURN_ON);  // in ms
-                if (LIGHT_BRIGHTNESS_TURN_ON > 0 and LIGHT_BRIGHTNESS_TURN_ON <= 100)
-                  call.set_brightness(LIGHT_BRIGHTNESS_TURN_ON / 100.0f);
+                call.set_brightness(cbri);
                 call.perform();
               } else {
                 ESP_LOGI("${TAG_HW_RELAYS}",
@@ -914,40 +931,46 @@ script:
                 }
                 for (uint8_t i = 0; i < ${gang_count}; i++) {
                   bool relay_state = false;
+                  bool indicator_on = true;
                   std::string light_mode;
 
-                  // Determine relay state and light mode
+                  // Determine relay state, indicator master enable and lit area
                   switch (i) {
                     case 0:
                       relay_state = id(relay_1_state);
+                      indicator_on = id(relay_1_color)->current_values.is_on();
                       light_mode = sl_relay_1_light_mode->current_option();
                       break;
                     case 1:
                       relay_state = id(relay_2_state);
+                      indicator_on = id(relay_2_color)->current_values.is_on();
                       light_mode = sl_relay_2_light_mode->current_option();
                       break;
                     case 2:
                       relay_state = id(relay_3_state);
+                      indicator_on = id(relay_3_color)->current_values.is_on();
                       light_mode = sl_relay_3_light_mode->current_option();
                       break;
                     case 3:
                       relay_state = id(relay_4_state);
+                      indicator_on = id(relay_4_color)->current_values.is_on();
                       light_mode = sl_relay_4_light_mode->current_option();
                       break;
                   }
 
                   ESP_LOGV("${TAG_HW_RELAYS}", "Relay %" PRIu8 " is %s", i + 1, relay_state ? "ON" : "OFF");
-                  ESP_LOGV("${TAG_HW_RELAYS}", "Light Mode for Relay %" PRIu8 ": %s", i + 1, light_mode.c_str());
+                  ESP_LOGV("${TAG_HW_RELAYS}", "Indicator for Relay %" PRIu8 ": %s", i + 1, ONOFF(indicator_on));
+                  ESP_LOGV("${TAG_HW_RELAYS}", "Indicator area for Relay %" PRIu8 ": %s", i + 1, light_mode.c_str());
 
                   // Reconcile every region for this relay so deselected regions are
-                  // explicitly turned off (self-correcting on any state/mode/color change).
-                  // "All" (and the legacy "Both") lights every region the relay owns;
-                  // "Disabled" leaves all three wanted=false, turning everything off.
-                  const bool all = (light_mode == "${LIGHT_MODE_ALL_TEXT}" ||
-                                    light_mode == "${LIGHT_MODE_BOTH_TEXT}");
-                  const bool want_bottom = relay_state && (all || light_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}");
-                  const bool want_top    = relay_state && (all || light_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}");
-                  const bool want_side   = relay_state && (all || light_mode == "${LIGHT_MODE_SIDE_TEXT}");
+                  // explicitly turned off (self-correcting on any state/area/style change).
+                  // "All" lights every region the relay owns; an indicator light that the user
+                  // switched off leaves all three wanted=false, turning everything off.
+                  const bool active = relay_state && indicator_on;
+                  const bool all = (light_mode == "${LIGHT_MODE_ALL_TEXT}");
+                  const bool want_bottom = active && (all || light_mode == "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}");
+                  const bool want_top    = active && (all || light_mode == "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}");
+                  const bool want_side   = active && (all || light_mode == "${LIGHT_MODE_SIDE_TEXT}");
                   light_set_state->execute(1, i, want_bottom);  // Bottom region
                   light_set_state->execute(2, i, want_top);     // Top region
                   if (i < id(gb_lights_3).size())
@@ -955,16 +978,17 @@ script:
                 }
 
 select:
-  # Per-relay light mode. Each option maps to a physical region of the relay's arc:
-  #   Disabled · Bottom · Side · Top · All   (All = every region the relay owns)
+  # Which physical region of the relay's arc the indicator lights:
+  #   Bottom · Side · Top · All   (All = every region the relay owns)
+  # There is deliberately no "Disabled" option — turning the relay's indicator light off is
+  # the single way to disable it, so there are not two controls meaning the same thing.
   # show_relay_status reconciles all regions on every change, so on_value just
   # re-runs it; no per-relay transition bookkeeping is needed.
   - &relay_light_mode
     id: sl_relay_1_light_mode
-    name: Relay 1 light mode
+    name: Relay 1 indicator area
     platform: template
     options:
-      - "${LIGHT_MODE_DISABLED_TEXT}"
       - "${LIGHT_MODE_BOTTOM_OR_LEFT_TEXT}"
       - "${LIGHT_MODE_SIDE_TEXT}"
       - "${LIGHT_MODE_TOP_OR_RIGHT_TEXT}"
@@ -981,19 +1005,19 @@ select:
       - script.execute: persist_relay_prefs   # flush the chosen mode so it survives a power cut
 
   - id: sl_relay_2_light_mode
-    name: Relay 2 light mode
+    name: Relay 2 indicator area
     restore_value: ${gang_count >= 2}
     internal: ${gang_count < 2}
     <<: *relay_light_mode
 
   - id: sl_relay_3_light_mode
-    name: Relay 3 light mode
+    name: Relay 3 indicator area
     restore_value: ${gang_count >= 3}
     internal: ${gang_count < 3}
     <<: *relay_light_mode
 
   - id: sl_relay_4_light_mode
-    name: Relay 4 light mode
+    name: Relay 4 indicator area
     restore_value: ${gang_count >= 4}
     internal: ${gang_count < 4}
     <<: *relay_light_mode

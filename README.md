@@ -29,6 +29,32 @@
 [buymeacoffee-shield]: https://img.shields.io/static/v1?label=Buy%20me%20an%20ice%20cream&message=❄&color=blue
 [buymeacoffee]: https://www.buymeacoffee.com/edwardfirmo
 
+## ⚠️ Breaking Change: LED entity cleanup
+
+The LED entities were consolidated so that each concept has exactly one control. **No YAML
+changes are required** — but entity names change, and renamed entities reset once.
+
+| Was | Now |
+|-----|-----|
+| `Relay N color` | **`Relay N indicator`** — its brightness slider now works, and its on/off toggle enables/disables that indicator |
+| `Relay N light mode` | **`Relay N indicator area`** — the `Disabled` option is gone; turn the indicator light off instead |
+| `Lights (all)` | **`LED ring`** — while on, it owns the strip and relay indicators stand down instead of fighting it |
+| `Light - Bottom` / `Light - Left` / `Light - Right` / `Light - Top` | **removed** — use `LED ring` for the whole ring, or the optional `_hw_leds_individual` package for per-LED control |
+| `Night Mode - Color` | **`Night Mode - LED`**, now filed under *Configuration* |
+| `Light output N` (light mode) | **`Relay N light`** |
+
+**What you need to do after updating:**
+
+1. **Re-point automations and dashboards.** Renamed entities get new `entity_id`s in Home
+   Assistant; the old ones become unavailable and can be deleted from the entity registry.
+2. **Re-pick your indicator colour, brightness and area.** ESPHome derives an entity's stored
+   preference key from its name, so every renamed entity starts from its default once:
+   `Relay N indicator` returns to white at full brightness, `Relay N indicator area` to `All`,
+   and `LED ring` to off. This is a one-time reset — the new values persist normally.
+3. **If you used Home Assistant's *"show as Light"* helper on a relay**, delete it and set
+   `relay_N_mode: light` instead. That gives you a real `light.` entity from the firmware and
+   removes the leftover hidden switch from the device page.
+
 ## ⚠️ Breaking Changes in Version 2025.12.2
 
 **Action Required**: Existing users must update their YAML configuration to include new required substitutions.
@@ -146,8 +172,34 @@ For more details, please refer to our **[Events docs](docs/events.md)**.
 
 ### Device Configuration
 #### Relay Modes
-- **Light Mode**: Exposes the relay as a light entity with brightness controls (if supported)
-- **Switch Mode**: Exposes the relay as a simple on/off switch entity
+Set per relay with the `relay_N_mode` substitution:
+
+- **`light`**: Exposes the relay as a `light.` entity named **Relay N light**
+- **`switch`** (default): Exposes the relay as a `switch.` entity named **Relay N**
+- **`disabled`**: The relay is not exposed at all
+
+Both modes are plain on/off — the relay is a dry contact, so it has no dimming of its own
+regardless of which one you pick. Use `relay_N_mode: light` if you want a `light.` entity;
+there is no need for Home Assistant's *"show as Light"* (`switch_as_x`) helper, which leaves
+a second, hidden copy of the relay on the device page.
+
+#### LED Indicators
+
+The LED ring is driven by three kinds of entity. Each one owns exactly one job:
+
+| Entity | Type | What it does |
+|--------|------|--------------|
+| **Relay N indicator** | Light (config) | How relay N's indicator looks when the relay is on — **colour**, **brightness**, and on/off as the master enable for that indicator |
+| **Relay N indicator area** | Select (config) | Which part of relay N's arc lights up: `Bottom`/`Left`, `Side`, `Top`/`Right`, or `All` |
+| **LED ring** | Light | Manual control of the whole ring, with the effects library |
+
+**Relay N indicator** does not drive the LEDs directly — it is the style the firmware paints
+with whenever relay N turns on. Changing its colour or brightness updates the panel live.
+Turn it off to stop relay N lighting the ring at all.
+
+**LED ring** takes over the whole strip while it is on: relay indicators stand down rather
+than fight it for the same LEDs. Turn it off and the indicators repaint themselves
+immediately (or Night Mode reapplies, if that is active).
 
 #### Button Actions
 - **None**: Allows using button events for custom automations
@@ -168,16 +220,20 @@ suppresses vibration and click-sound feedback. The state survives reboots.
 | Entity | Type | Default | Description |
 |--------|------|---------|-------------|
 | Night Mode | Switch | Off | Enable/disable night mode |
-| Night Mode - Color | Light | Off | Set the LED color and brightness used in night mode |
+| Night Mode - LED | Light (config) | Off | Set the LED color and brightness used in night mode |
 | Night Mode - Suppress Vibration | Switch (config) | On | Block haptic feedback while night mode is active |
 | Night Mode - Suppress Sound | Switch (config) | On | Block click sounds while night mode is active |
 
 **Usage:**
-1. Set **Night Mode - Color** to your desired color and brightness
+1. Set **Night Mode - LED** to your desired color and brightness
 2. Enable the **Night Mode** switch — the color is snapshotted and the LEDs lock in
 3. Toggle the suppression switches under *Configuration* to allow or block vibration/sound
-4. To change the color: disable Night Mode, adjust **Night Mode - Color**, then re-enable — this re-snapshots the color and persists it across reboots
-5. Disable the switch to restore normal relay indicator behavior — **Lights (all)** is unaffected by night mode
+4. To change the color: disable Night Mode, adjust **Night Mode - LED**, then re-enable — this re-snapshots the color and persists it across reboots
+5. Disable the switch to restore normal relay indicator behavior
+
+Night Mode never changes the **LED ring** entity's own state. If you switch the LED ring on while
+Night Mode is active it paints over the night colour, and turning it back off restores the night
+colour rather than the relay indicators.
 
 ### Advanced Tuning (optional)
 

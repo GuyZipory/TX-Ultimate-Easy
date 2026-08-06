@@ -83,15 +83,18 @@ output:
           }
 
 light:
-  # Virtual RGB color picker — stores color preference, never drives hardware.
+  # Virtual RGB picker — stores the night mode colour/brightness preference, never drives
+  # hardware. It is a setting, not a lamp, so it is filed under Configuration with the rest
+  # of the Night Mode entities rather than sitting in Controls looking like a real light.
   # lights_all is intentionally left untouched by night mode.
   - id: light_night_mode
-    name: "Night Mode - Color"
+    name: "Night Mode - LED"
     platform: rgb
     red: out_night_mode_red
     green: out_night_mode_green
     blue: out_night_mode_blue
     icon: mdi:weather-night
+    entity_category: config
     restore_mode: RESTORE_DEFAULT_OFF
 
   # Internal partition that drives the physical strip while Night Mode is active.

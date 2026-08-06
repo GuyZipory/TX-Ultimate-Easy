@@ -18,10 +18,14 @@ substitutions:
   TAG_HW_VIBRATION: tx_ultimate_easy.vibration
 
 binary_sensor:
+  # Off by default: the motor runs for ~100ms, so this is almost never observable in HA.
+  # The `Vibrate` button and the HA events cover the useful cases; enable it manually if
+  # you specifically want to watch the motor line.
   - id: bs_vibrating
     name: Vibrating
     icon: mdi:vibrate
     internal: false
+    disabled_by_default: true
     platform: template
     lambda: return sw_vibration_motor->state;
 
@@ -41,7 +45,7 @@ esphome:
 
 number:
   - id: nr_vibrating_duration
-    name: Vibrate duration
+    name: Vibration - Duration
     icon: mdi:vibrate
     unit_of_measurement: ms
     internal: false
