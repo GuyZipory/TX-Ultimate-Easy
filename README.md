@@ -1,444 +1,154 @@
 # TX Ultimate Easy
 
-> Fork of [edwardtfn/TX-Ultimate-Easy](https://github.com/edwardtfn/TX-Ultimate-Easy) by Edward Firmo, maintained by [GuyZipory](https://github.com/GuyZipory).
-
 [![Version][version-shield]](https://github.com/GuyZipory/TX-Ultimate-Easy/tags)
-[![GitHub Activity][commits-shield]](https://github.com/GuyZipory/TX-Ultimate-Easy/commits/main)
 [![License][license-shield]](LICENSE)
-[![GitHub Last Commit][last-commit-shield]](https://github.com/GuyZipory/TX-Ultimate-Easy/commits/main)
 [![ESPHome][esphome-shield]](https://esphome.io/)
-[![Discord][discord-shield]](https://discord.gg/Db6WJWzWuf)
-[![Buy me an ice-cream][buymeacoffee-shield]](https://www.buymeacoffee.com/edwardfirmo)
 
 <!-- markdownlint-disable MD013 MD033 -->
-| &nbsp;<picture><source media="(prefers-color-scheme: dark)" srcset="Assets/Logo_dark.png"><source media="(prefers-color-scheme: light)" srcset="Assets/Logo_light.png"><img alt="TX Ultimate Easy Logo" src="Assets/Logo_light.png"></picture> | TX Ultimate Easy provides custom ESPHome firmware for Sonoff TX Ultimate devices. Our project focuses on user-friendly configuration through the Home Assistant UI, eliminating the need for manual YAML editing. Whether you're new to home automation or an experienced user, TX Ultimate Easy makes it simple to manage your device. |
+| &nbsp;<picture><source media="(prefers-color-scheme: dark)" srcset="Assets/Logo_dark.png"><source media="(prefers-color-scheme: light)" srcset="Assets/Logo_light.png"><img alt="TX Ultimate Easy Logo" src="Assets/Logo_light.png"></picture> | ESPHome firmware for the **Sonoff TX Ultimate** touch wall switch. Flash it once over serial, then configure the relays, LED ring, gestures and feedback from the Home Assistant UI — no YAML editing after setup. |
 | --- | :-- |
 <!-- markdownlint-enable MD013 MD033 -->
 
 [version-shield]: https://img.shields.io/github/v/tag/GuyZipory/TX-Ultimate-Easy?label=version
-[version]: https://github.com/GuyZipory/TX-Ultimate-Easy/tags
-[commits-shield]: https://img.shields.io/github/commit-activity/y/GuyZipory/TX-Ultimate-Easy
-[commits]: https://github.com/GuyZipory/TX-Ultimate-Easy/commits/main
 [license-shield]: https://img.shields.io/github/license/GuyZipory/TX-Ultimate-Easy
-[license]: LICENSE
-[last-commit-shield]: https://img.shields.io/github/last-commit/GuyZipory/TX-Ultimate-Easy
 [esphome-shield]: https://img.shields.io/badge/powered%20by-ESPHome-blue
-[esphome]: https://esphome.io/
-[discord-shield]: https://img.shields.io/discord/1243652421692031016?logo=discord
-[discord]: https://discord.gg/Db6WJWzWuf
-[buymeacoffee-shield]: https://img.shields.io/static/v1?label=Buy%20me%20an%20ice%20cream&message=❄&color=blue
-[buymeacoffee]: https://www.buymeacoffee.com/edwardfirmo
-
-## ⚠️ Breaking Change: LED entity cleanup
-
-The LED entities were consolidated so that each concept has exactly one control. **No YAML
-changes are required** — but entity names change, and renamed entities reset once.
-
-| Was | Now |
-|-----|-----|
-| `Relay N color` | **`Relay N indicator`** — its brightness slider now works, and its on/off toggle enables/disables that indicator |
-| `Relay N light mode` | **`Relay N indicator area`** — the `Disabled` option is gone; turn the indicator light off instead |
-| `Lights (all)` | **`LED ring`** — while on, it owns the strip and relay indicators stand down instead of fighting it |
-| `Light - Bottom` / `Light - Left` / `Light - Right` / `Light - Top` | **removed** — use `LED ring` for the whole ring, or the optional `_hw_leds_individual` package for per-LED control |
-| `Night Mode - Color` | **`Night Mode - LED`**, now filed under *Configuration* |
-| `Light output N` (light mode) | **`Relay N light`** |
-
-**What you need to do after updating:**
-
-1. **Re-point automations and dashboards.** Renamed entities get new `entity_id`s in Home
-   Assistant; the old ones become unavailable and can be deleted from the entity registry.
-2. **Re-pick your indicator colour, brightness and area.** ESPHome derives an entity's stored
-   preference key from its name, so every renamed entity starts from its default once:
-   `Relay N indicator` returns to white at full brightness, `Relay N indicator area` to `All`,
-   and `LED ring` to off. This is a one-time reset — the new values persist normally.
-3. **If you used Home Assistant's *"show as Light"* helper on a relay**, delete it and set
-   `relay_N_mode: light` instead. That gives you a real `light.` entity from the firmware and
-   removes the leftover hidden switch from the device page.
-
-## ⚠️ Breaking Changes in Version 2025.12.2
-
-**Action Required**: Existing users must update their YAML configuration to include new required substitutions.
-
-Starting with version `2025.12.2`, device configuration has moved from UI selectors to YAML substitutions for improved stability and reliability. This change simplifies the firmware logic and resolves several existing bugs related to device initialization and state management.
-
-### Requirements
-
-- **ESPHome 2025.11.0 or later** (older versions will not compile)
-- Updated YAML configuration with required substitutions (see below)
-
-### Required Changes
-
-Add these **new** substitutions to your existing YAML configuration (keep your existing `name` and `friendly_name` as they are):
-
-```yaml
-substitutions:
-  name: your-device-name                    # Keep your existing name
-  friendly_name: Your device friendly name  # Keep your existing friendly name
-  device_format: EU  # NEW - Required: 'EU' or 'US' (case-sensitive, uppercase only)
-  gang_count: 3      # NEW - Required: Number of relays/buttons (1, 2, 3, or 4)
-  expose_relays_leds_to_ha: false  # NEW - Optional: Expose relay LEDs to Home Assistant (defaults to false)
-```
 
-**Note**: Only the last three substitutions (`device_format`, `gang_count`, and optionally `expose_relays_leds_to_ha`) are new. Do not change your existing device name and friendly name.
-
-### Why This Change?
-
-While this moves slightly away from our "Easy" philosophy of pure UI configuration, these changes bring significant benefits:
-
-- **Improved Stability**: Eliminates race conditions during device initialization
-- **Bug Fixes**: Resolves multiple reported issues with gang count and model detection
-- **Better Performance**: Compile-time validation instead of runtime checks
-- **Advanced Features**: Potentially enables bluetooth_proxy and other advanced customizations (experimental, not officially supported)
-
-### Migration Guide
-
-1. **Update ESPHome** (if needed):
-   - Ensure you're running ESPHome 2025.11.0 or later
-   - Update via Home Assistant: Settings → Add-ons → ESPHome → Update
-2. Open your ESPHome configuration file
-3. Add the **new** substitutions to your **existing** `substitutions:` section:
-   - `device_format: EU` or `model: US` (required)
-   - `gang_count: 1` through `gang_count: 4` (required)
-   - Keep your existing `name` and `friendly_name` unchanged
-4. Optionally add `expose_relays_leds_to_ha: false` if you need this feature
-5. Save and recompile your firmware
-6. Remove the old Model and Gang selectors from Home Assistant (they're no longer used)
-
-The compiler will provide clear error messages if required substitutions are missing or invalid.
-
-> [!WARNING]
-> ESPHome builder v2025.11.0+ is required
-
-## Framework Migration to ESP-IDF
-
-> [!IMPORTANT]  
-> **ESP-IDF Framework Migration**
-> 
-> Starting with version **2025.8.0**, TX Ultimate Easy will use **ESP-IDF** as the default framework, following ESPHome's direction towards ESP-IDF for better performance, stability, and feature support.
-> 
-> **What this means for you:**
-> - **New installations**: Will automatically use ESP-IDF (no action required)
-> - **Existing Arduino users**: Can continue using Arduino but with limited support
-> - **Migration recommended**: For better performance and full feature support
-> 
-> **Arduino Framework Support:**
-> - Still functional but **no longer actively tested**
-> - **Limited support** will be provided for Arduino-specific issues
-> - May miss out on new features optimized for ESP-IDF
-
-### Migration Guidelines
-
-#### For New Users
-No action required - ESP-IDF will be used automatically.
-
-#### For Existing Arduino Users
-
-**Option 1: Migrate to ESP-IDF (Recommended)**
-1. **Best practice**: Flash via serial/USB to ensure proper partition setup
-2. **Alternative**: If serial flashing isn't possible, flash OTA twice consecutively to improve success rate
-
-**Option 2: Continue with Arduino**
-Add this to your YAML configuration to force Arduino framework:
-```yaml
-esp32:
-  framework:
-    type: arduino
-```
-
-> [!WARNING]  
-> **Migration via OTA:** When switching frameworks via OTA, the partition table may not update correctly. Flash twice in succession to ensure both firmware partitions contain the latest firmware and prevent boot failures.
-
-## Integration with Home Assistant
-
-TX Ultimate Easy exposes your device's components (sensors, touch panel, relays, etc.) to Home Assistant,
-allowing you to:
-
-- Monitor sensor states and values
-- Control device components through the Home Assistant UI
-- Use device triggers and states in your Home Assistant automations and scripts
-- Configure device behavior through Home Assistant's service calls
-
-All automation capabilities are handled through Home Assistant's
-native automation system - this project focuses on providing reliable
-device integration rather than implementing its own automation tools.
-
-### Event-Based Automation
-
-TX Ultimate Easy uses Home Assistant's native Events system for reliable automation triggers.
-While sensors show the current state (e.g., button pressed/not pressed),
-events capture-specific actions like clicks, swipes, and long presses.
-
-For more details, please refer to our **[Events docs](docs/events.md)**.
-
-### Device Configuration
-#### Relay Modes
-Set per relay with the `relay_N_mode` substitution:
-
-- **`light`**: Exposes the relay as a `light.` entity named **Relay N light**
-- **`switch`** (default): Exposes the relay as a `switch.` entity named **Relay N**
-- **`disabled`**: The relay is not exposed at all
-
-Both modes are plain on/off — the relay is a dry contact, so it has no dimming of its own
-regardless of which one you pick. Use `relay_N_mode: light` if you want a `light.` entity;
-there is no need for Home Assistant's *"show as Light"* (`switch_as_x`) helper, which leaves
-a second, hidden copy of the relay on the device page.
-
-#### LED Indicators
-
-The LED ring is driven by three kinds of entity. Each one owns exactly one job:
-
-| Entity | Type | What it does |
-|--------|------|--------------|
-| **Relay N indicator** | Light (config) | How relay N's indicator looks when the relay is on — **colour**, **brightness**, and on/off as the master enable for that indicator |
-| **Relay N indicator area** | Select (config) | Which part of relay N's arc lights up: `Bottom`/`Left`, `Side`, `Top`/`Right`, or `All` |
-| **LED ring** | Light | Manual control of the whole ring, with the effects library |
-
-**Relay N indicator** does not drive the LEDs directly — it is the style the firmware paints
-with whenever relay N turns on. Changing its colour or brightness updates the panel live.
-Turn it off to stop relay N lighting the ring at all.
-
-**LED ring** takes over the whole strip while it is on: relay indicators stand down rather
-than fight it for the same LEDs. Turn it off and the indicators repaint themselves
-immediately (or Night Mode reapplies, if that is active).
-
-#### Button Actions
-- **None**: Allows using button events for custom automations
-  Example: Trigger scenes or complex automations through Home Assistant
-- **Relay Toggle**: Direct control of the associated relay
-  Example: Toggle relay state with each press, independent of Home Assistant
-
-#### Automation
-All device behaviors can be customized through Home Assistant automations without relying on local device triggers.
-
-### Night Mode
-
-Night Mode freezes the LEDs at a fixed color and brightness and, optionally,
-suppresses vibration and click-sound feedback. The state survives reboots.
-
-**Entities exposed to Home Assistant:**
-
-| Entity | Type | Default | Description |
-|--------|------|---------|-------------|
-| Night Mode | Switch | Off | Enable/disable night mode |
-| Night Mode - LED | Light (config) | Off | Set the LED color and brightness used in night mode |
-| Night Mode - Suppress Vibration | Switch (config) | On | Block haptic feedback while night mode is active |
-| Night Mode - Suppress Sound | Switch (config) | On | Block click sounds while night mode is active |
-
-**Usage:**
-1. Set **Night Mode - LED** to your desired color and brightness
-2. Enable the **Night Mode** switch — the color is snapshotted and the LEDs lock in
-3. Toggle the suppression switches under *Configuration* to allow or block vibration/sound
-4. To change the color: disable Night Mode, adjust **Night Mode - LED**, then re-enable — this re-snapshots the color and persists it across reboots
-5. Disable the switch to restore normal relay indicator behavior
-
-Night Mode never changes the **LED ring** entity's own state. If you switch the LED ring on while
-Night Mode is active it paints over the night colour, and turning it back off restores the night
-colour rather than the relay indicators.
-
-### Advanced Tuning (optional)
-
-Two optional substitutions free up IRAM on newer ESP32 silicon. Both default to the safe, existing behavior — **only set them once you have confirmed your device supports them**, by reading its boot log.
-
-```yaml
-substitutions:
-  esp32_minimum_chip_revision: "3.1"   # default: "3.0"
-  esp32_sram1_as_iram: "true"          # default: "false"
-```
-
-- **`esp32_minimum_chip_revision`** — frees ~10 kB of IRAM.
-  Safe only if your boot log reports `Chip rev >= 3.0 detected` **and** the chip is revision 3.1 or newer.
-  The bootloader will refuse to start on older silicon.
-- **`esp32_sram1_as_iram`** — frees ~40 kB of IRAM.
-  Safe only if your boot log says `Bootloader supports SRAM1 as IRAM`.
-  Requires a bootloader from ESP-IDF v5.1 or newer.
-
-> [!WARNING]
-> Enabling `esp32_sram1_as_iram` on a device with an older bootloader means the app will not boot. **OTA updates cannot replace the bootloader** — recovery requires a USB flash. Check the boot log first.
-
-To read the log line, look near the top of the device's log output right after a restart:
-
-```text
-[W][app:168]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" ...
-[W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true ...
-```
-
-ESPHome only prints each line when that option is actually applicable to your hardware.
-
-## Key Features
-
-- **Home Assistant UI Configuration**: Manage all device settings directly through the Home Assistant interface
-- **Zero YAML Knowledge Required**: After initial setup, no manual YAML editing needed
-- **Flexible Light Control**: Customize LED behavior and effects
-- **Touch Panel Support**: Full support for touch gestures and multi-touch capabilities
-- **Advanced Automations**: Create complex automations using Home Assistant's powerful automation engine
-- **Bluetooth Proxy Support**: Compatible with ESPHome's bluetooth_proxy component for BLE device integration
-- **ESP-NOW**: Optional peer-to-peer control so one switch can toggle relays on other switches without Home Assistant (see [ESP-NOW docs](docs/espnow.md))
-- **Audio Feedback**: Built-in speaker support for audible feedback
-- **Haptic Feedback**: Vibration motor support for tactile feedback
-- **Night Mode**: Persistent LED color/brightness lock that silences touch-triggered light changes, vibration, and sound — survives device reboots
-- **ESP-IDF Framework**: Enhanced performance and stability with ESP-IDF support
-
-## Hardware Support
-
-- Compatible with all Sonoff TX Ultimate variants:
-  - EU format (Square, T5-xC-86)
-  - US format (Rectangle, T5-xC-120)
-  - 1/2/3/4 gang versions
-
-## Prerequisites
-
-Before getting started, ensure you have:
-
-1. A Sonoff TX Ultimate device
-2. Home Assistant installation
-3. ESPHome (could be as an add-on to Home Assistant - version 2025.11.0 or later required)
-4. Basic knowledge of Home Assistant
+> **This is a fork** of [edwardtfn/TX-Ultimate-Easy](https://github.com/edwardtfn/TX-Ultimate-Easy)
+> by Edward Firmo, maintained by [GuyZipory](https://github.com/GuyZipory). It tracks upstream and
+> adds a reworked touch path, cleaned-up LED and relay entities, and defaults tuned for a switch
+> that responds on the first tap. See [What's different in this fork](#whats-different-in-this-fork).
+
+## What's different in this fork
+
+Upstream's firmware, with the touch path made reliable and one control per concept instead of
+several that fight each other.
+
+<!-- markdownlint-disable MD013 -->
+| Area | What changed |
+| --- | --- |
+| **Defaults** | Ships as a fast single-tap switch: the relay moves the instant you lift your finger, and the gesture recognition that used to swallow taps is off. See [Factory defaults](#factory-defaults). |
+| **Relays** | `relay_N_mode` picks `switch`, `light` or `disabled` per relay. `light` gives you a real `light.` entity from the firmware, so Home Assistant's *show as Light* helper is no longer needed. See [Relays](#relays). |
+| **LED indicators** | One entity per job. `Relay N indicator` sets the colour **and** brightness (the brightness slider used to do nothing). `Relay N indicator area` picks which part of the arc lights up. `LED ring` owns the whole strip while it is on, instead of fighting the indicators. See [LED indicators](#led-indicators). |
+| **Night Mode** | The colour picker is `Night Mode - LED`, filed under *Configuration*. See [Night Mode](#night-mode). |
+| **Advanced tuning** | Two optional substitutions free up IRAM on newer ESP32 silicon. See [Advanced tuning](#advanced-tuning). |
+<!-- markdownlint-enable MD013 -->
+
+### Reliability fixes
+
+- Boot handlers were being silently dropped by a package-merge quirk, so the device never
+  finished booting. The whole sequence — NVS restore, initialisation, boot animation — now runs.
+- Taps that failed to toggle the relay are fixed, as is a stuck gesture flag that could block
+  toggling entirely until the next reboot.
+- Relay state is flushed to NVS on every toggle, so it survives a power cut instead of losing up
+  to a minute of changes.
+- A single tap no longer produces doubled vibration and click feedback.
+- The `firmware` field in Home Assistant events was always empty; it now carries the version.
+
+Everything else tracks upstream.
+
+## Contents
+
+- [Key features](#key-features)
+- [Hardware support](#hardware-support)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuring the device](#configuring-the-device)
+- [Contributing](#contributing)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
+
+## Key features
+
+- **Touch panel** — clicks, long-presses, swipes and multi-touch, exposed to Home Assistant as
+  events and sensors.
+- **Relays** — 1 to 4 gangs, each independently a switch, a light, or disabled.
+- **LED ring** — per-relay status indicators with configurable colour, brightness and arc, plus
+  manual control with an effects library.
+- **Night Mode** — locks the LEDs to a fixed colour and brightness and can silence vibration and
+  sound. Survives reboots.
+- **Haptic and audio feedback** — vibration motor and built-in speaker, both configurable.
+- **Bluetooth proxy** — compatible with ESPHome's `bluetooth_proxy` component.
+- **ESP-NOW** — optional peer-to-peer control so one switch can toggle relays on another without
+  Home Assistant. See the [ESP-NOW docs](docs/espnow.md).
+- **UI configuration** — everything above is adjustable from Home Assistant. Only the device
+  format and gang count live in YAML, because they are compile-time.
+
+## Hardware support
+
+All Sonoff TX Ultimate variants:
+
+- **EU** format (square, T5-xC-86)
+- **US** format (rectangle, T5-xC-120)
+- 1, 2, 3 and 4 gang
+
+## Requirements
+
+- A Sonoff TX Ultimate device
+- Home Assistant
+- ESPHome **2025.11.0 or later** — older versions will not compile
+- A USB-to-UART adapter for the first flash (see [Flash the firmware](#flash-the-firmware))
+
+The firmware builds on **ESP-IDF**, ESPHome's default framework for the ESP32. Arduino is not
+tested and not supported here.
 
 ## Installation
 
-Follow these steps to get your TX Ultimate device up and running with ESPHome.
+### Set up the device
 
-### ESPHome Integration Setup
+In the ESPHome dashboard, click **+ New Device**, name it, choose **ESP32**, then replace the
+generated configuration with this:
 
-1. Install the ESPHome add-on in Home Assistant if not already installed:
-   - Go to Settings → Add-ons → Add-on Store
-   - Search for "ESPHome" 
-   - Click Install
-2. Start the ESPHome add-on and verify it's running
-3. Access ESPHome dashboard through Home Assistant
-
-### Setup Device
-
-1. In the ESPHome dashboard, click "+ New Device"
-2. Name your device (e.g., "tx-ultimate-living-room")
-3. Select ESP32 as your device type
-4. Copy this basic configuration to your new device:
-   ```yaml
-   substitutions:
-     name: tx-ultimate-easy           # Must be unique per device (e.g., tx-ultimate-easy-1, tx-ultimate-easy-2)
-     friendly_name: TX Ultimate Easy  # Must be unique per device
-     device_format: EU                # Required: 'EU' or 'US' (case-sensitive, uppercase only)
-     gang_count: 1                    # Required: Number of relays/buttons (1, 2, 3, or 4)
-
-   wifi:
-     ssid: !secret wifi_ssid
-     password: !secret wifi_password
-
-   packages:
-     remote_package:
-       url: https://github.com/GuyZipory/TX-Ultimate-Easy
-       ref: main  # Or you can specify a version tag for controlled updates, like `ref: v2024.12.2`
-       refresh: 5min
-       files:
-         - ESPHome/TX-Ultimate-Easy-ESPHome_core.yaml                  # Core (essential) packages
-         - ESPHome/TX-Ultimate-Easy-ESPHome_standard.yaml              # Non-essential, but recommended packages
-   ```
-   You can also use a specific version tag for better control over updates:
-   ```yaml
-   ref: v2024.12.2  # Using specific version for controlled updates
-   ```
-    **Notes:**
-      - [Click here](https://github.com/GuyZipory/TX-Ultimate-Easy/tags) for a full list of versions available.
-      - [Click here](TX-Ultimate-Easy-ESPHome.yaml)
-        for the latest version of this yaml.
-5. Click "Save" and then "Install"
-
-> [!IMPORTANT]  
-> Starting from version 2025.1.0, non-essential components like `web_server`, `captive_portal`, and `wifi`
-> are no longer included in the core package. If you need these components,
-> you must add them manually to your local configuration file.
-> For example:
-> ```yaml
-> # Add these to your configuration if needed
-> web_server:
-> captive_portal:
-> wifi:
->   ap: # Access point configuration
-> ```
-
-### Optional Features
-
-#### Bluetooth Proxy
-TX Ultimate Easy is fully compatible with ESPHome's `bluetooth_proxy` component.
-To enable Bluetooth proxy functionality, add the following to your device configuration:
-
-```yaml
-bluetooth_proxy:
-  # Optional: Configure specific settings
-  # active: true
-```
-
-**Requirements for Bluetooth Proxy:**
-- ESP-IDF framework (default framework, not recommended with Arduino framework)
-- Sufficient memory (TX Ultimate Easy components are compatible,
-  but adding additional custom components may require memory optimization)
-
-> [!NOTE]
-> Bluetooth proxy functionality is provided by ESPHome's native component.
-> TX Ultimate Easy ensures compatibility but does not include it by default to maintain optimal memory usage.
-
-> [!WARNING]
-> Bluetooth proxy with TX Ultimate Easy is considered experimental and not fully tested.
-> While the compile-time configuration changes (device format and gang count as substitutions) may enable better compatibility,
-> we continue to consider this as a non-officially-supported customization. Use at your own risk.
-
-#### ESP-NOW (multi-device relay control)
-Add the ESP-NOW package so one switch can toggle relays on another switch directly, without Home Assistant.
-Configuration is done via YAML substitutions (target MAC and relay per button).
-For setup, see **[ESP-NOW docs](docs/espnow.md)**.
-
-### Advanced Settings
-For more granular control over components,
-you can use our [advanced configuration template](TX-Ultimate-Easy-ESPHome_advanced.yaml).
-This template allows you to selectively include specific packages, which can be useful for:
-
-- Troubleshooting specific components
-- Reducing memory usage by excluding unused features
-- Customizing functionality for specific use cases
-
-Here's an example of the advanced configuration:
 ```yaml
 substitutions:
-  name: tx-ultimate-easy           # Must be unique per device (e.g., tx-ultimate-easy-1, tx-ultimate-easy-2)
+  name: tx-ultimate-easy           # Must be unique per device
   friendly_name: TX Ultimate Easy  # Must be unique per device
-  device_format: EU                # Required: 'EU' or 'US' (case-sensitive, uppercase only)
-  gang_count: 1                    # Required: Number of relays/buttons (1, 2, 3, or 4)
+  device_format: EU                # 'EU' or 'US' — uppercase only
+  gang_count: 1                    # Number of relays/buttons: 1, 2, 3 or 4
+
+# Not included in the packages below — add whichever you want
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+# web_server:
+# captive_portal:
 
 packages:
   remote_package:
     url: https://github.com/GuyZipory/TX-Ultimate-Easy
-    ref: main  # Or you can specify a version tag for controlled updates, like `ref: v2024.12.2`
+    ref: main  # Or pin a tag for controlled updates, e.g. ref: v2026.6.1
     refresh: 5min
     files:
-      # Core (essential) packages
-      - ESPHome/TX-Ultimate-Easy-ESPHome_common.yaml      # Basic shared settings
-      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_buttons.yaml  # Button logic
-      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_leds.yaml     # LED configuration
-      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_touch.yaml    # Touch panel support
-
-      # Optional but recommended packages
-      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_relays.yaml     # Relay control
-      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_vibration.yaml  # Haptic feedback
-
-      # Audio options (use none or choose only one - using both will fail)
-      - ESPHome/TX-Ultimate-Easy-ESPHome_media_player.yaml  # Media player (Recommended for most users)
-      # - ESPHome/TX-Ultimate-Easy-ESPHome_hw_speaker.yaml  # Basic speaker
-
-      # Advanced/Optional/Add-ons
-      # - ESPHome/TX-Ultimate-Easy-ESPHome_espnow.yaml    # Add support to ESP-NOW
+      - ESPHome/TX-Ultimate-Easy-ESPHome_core.yaml      # Essential
+      - ESPHome/TX-Ultimate-Easy-ESPHome_standard.yaml  # Recommended
 ```
 
-> [!NOTE]
-> Use the advanced configuration with caution. Excluding core packages may cause instability or reduced functionality.
+Then click **Save** → **Install**.
 
-### Device Flashing
+The substitutions:
 
-Initial flashing must be done via serial connection.
-We recommend using [ESPHome Web](https://web.esphome.io) for the simplest experience.
+| Substitution | Required | Values | Notes |
+| --- | --- | --- | --- |
+| `name` | Yes | slug | Must be unique per device |
+| `friendly_name` | Yes | text | Must be unique per device |
+| `device_format` | Yes | `EU` or `US` | Case-sensitive, uppercase only |
+| `gang_count` | Yes | `1`–`4` | Must be an integer, not a quoted string |
+| `expose_relays_leds_to_ha` | No | `true` / `false` | Defaults to `false` |
+
+`device_format` and `gang_count` are validated at compile time and need a rebuild to change.
+Everything else is adjustable from the Home Assistant UI.
+
+- [Full list of released versions](https://github.com/GuyZipory/TX-Ultimate-Easy/tags)
+- [Latest version of this YAML](TX-Ultimate-Easy-ESPHome.yaml)
+
+### Flash the firmware
+
+The first flash must be done over serial. [ESPHome Web](https://web.esphome.io) is the simplest
+way to do it. After that, all updates go over the air from the ESPHome dashboard.
 
 <!-- markdownlint-disable MD028 -->
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **SAFETY WARNINGS**
+>
 > - ALWAYS disconnect the device from mains power before opening
 > - NEVER work on the device while connected to mains power
 > - Ensure the device is completely powered off before making any connections
@@ -447,13 +157,18 @@ We recommend using [ESPHome Web](https://web.esphome.io) for the simplest experi
 > - If unsure about any step, seek help from an experienced person
 
 > [!CAUTION]
->⚡ **CRITICAL: VOLTAGE WARNING**
+> ⚡ **CRITICAL: VOLTAGE WARNING**
 > Using a UART adapter with voltage higher than 3.3V WILL DAMAGE YOUR DEVICE.
 > Double-check your adapter's voltage before connecting - many common FTDI adapters
 > default to 5V which will permanently damage the ESP32 chip.
 <!-- markdownlint-enable MD028 -->
 
-#### Required Hardware
+<!-- markdownlint-disable MD033 -->
+<details>
+<summary><b>Hardware needed and step-by-step flashing process</b></summary>
+
+#### Required hardware
+
 - USB-to-UART adapter:
   - 3.3V logic level ONLY (DO NOT use 5V adapters)
   - Must be capable of supplying at least 500mA
@@ -461,9 +176,10 @@ We recommend using [ESPHome Web](https://web.esphome.io) for the simplest experi
 - Small Phillips screwdriver
 - 5 wires for connections (including one for BOOT to GND)
 
-#### Flashing Process
-1. Open your TX Ultimate device carefully
-2. Locate the programming header pins
+#### Flashing process
+
+1. Open your TX Ultimate device carefully.
+2. Locate the programming header pins.
 3. Connect your USB-to-UART adapter:
 
    | Adapter | Device |
@@ -473,78 +189,191 @@ We recommend using [ESPHome Web](https://web.esphome.io) for the simplest experi
    | TX      | RX     |
    | RX      | TX     |
 
-4. Put device in flash mode:
+4. Put the device in flash mode:
    - Temporarily connect the BOOT pin to GND using a jumper wire
    - While holding BOOT to GND, power up the device
-   - After device powers up (wait a couple of seconds), remove the BOOT to GND connection
-5. Visit [ESPHome Web](https://web.esphome.io)
-6. Connect to your device and flash the firmware
-7. After successful flash, device will restart and be ready for OTA updates
+   - After the device powers up (wait a couple of seconds), remove the BOOT to GND connection
+5. Visit [ESPHome Web](https://web.esphome.io).
+6. Connect to your device and flash the firmware.
+7. After a successful flash the device restarts and is ready for OTA updates.
 
-#### Detailed Visual Guides
+#### Video walkthroughs
+
 <!-- markdownlint-disable MD013 -->
-For step-by-step visual instructions, you can reference these existing guides:
+These cover the physical disassembly, which is the fiddly part:
+
 - 🇬🇧 [Let's Automate](https://youtu.be/fIOgWQXndhI?si=O3j7sjwn7PvH1vxn) - English video tutorial
 - 🇪🇸 [Un loco y su tecnología](https://youtu.be/58v8oqSQgXQ?t=143) - Spanish video tutorial
 - 🇩🇪 [SmartHome yourself](https://youtu.be/naDLhX89enQ?t=465) - German video tutorial
 <!-- markdownlint-enable MD013 -->
 
-Note: While these guides may use different firmware, the physical flashing process remains the same.
+They use different firmware, but the physical flashing process is the same.
 
-#### Subsequent Updates
-After initial flashing, all future updates can be done wirelessly (OTA)
-through the ESPHome dashboard in your ESPHome add-on.
+</details>
+<!-- markdownlint-enable MD033 -->
 
-### Home Assistant Integration
+### Add it to Home Assistant
 
-After successful flashing:
-1. Ensure your device and Home Assistant are on the same network
-2. Device should be automatically discovered within 1–2 minutes
-3. Accept the discovery notification in Home Assistant to add device
-   Note: If discovery takes longer than 5 minutes, proceed to troubleshooting steps
-4. Device will appear in your Home Assistant Devices dashboard
+Once the device is flashed and on the same network, Home Assistant discovers it within a minute or
+two. Accept the discovery notification and it appears under **Devices & Services**.
 
-#### Troubleshooting Integration
-If the device isn't discovered automatically:
-1. Verify your device is powered and connected to your network:
-   - Look for the device in your router's client list
-   - Consider using [manual IP](https://esphome.io/components/wifi.html#manual-ips) in your device
-2. If you missed the discovery notification:
-   - Go to Settings → Devices & Services
-   - Click "Add Integration"
-   - Search for "ESPHome" and enter your device's IP address
-3. Still having issues?
-   - Check your network allows mDNS/discovery traffic
-   - Verify there are no VLANs or network isolation preventing communication
-   - Try rebooting both the device and Home Assistant
+<!-- markdownlint-disable MD033 -->
+<details>
+<summary><b>If the device isn't discovered</b></summary>
 
-### Initial Configuration
+- Check it is actually on the network — look for it in your router's client list, and consider
+  giving it a [manual IP](https://esphome.io/components/wifi.html#manual-ips).
+- Add it by hand: **Settings → Devices & Services → Add Integration → ESPHome**, then enter the
+  device's IP address.
+- Confirm your network allows mDNS, and that no VLAN or client isolation is in the way.
 
-1. Verify your YAML configuration includes the required substitutions:
-   - `device_format`: EU or US
-   - `gang_count`: 1, 2, 3, or 4
-   - Optional: `expose_relays_leds_to_ha`
-2. In Home Assistant, navigate to:
-   - Settings → Devices & Services → ESPHome
-   - Click on your device to access its configuration page
-3. Configure device parameters through Home Assistant UI:
-   - Relay modes (switch/light)
-   - Button actions
-   - LED behaviors
-   - Button - Long-press delay (how long a press must be held to count as a long-press instead of a click)
-   - Button - Multi-click delay (the double-click window; also the delay before a relay toggles)
-   - Touch - Event duration (how long the touch event sensors stay ON in HA; does not affect click detection)
-   - Touch - Multi-touch / Swipe gestures (both off by default — see Factory defaults below)
-   - Haptic feedback settings
-   - Audio feedback settings
-4. Test your configuration:
-   - Verify each relay responds to controls
-   - Test configured button actions
-   - Confirm LED behavior matches settings
-   - Check haptic/audio feedback if enabled
+</details>
+<!-- markdownlint-enable MD033 -->
 
-> [!NOTE]  
-> Model format and gang count are now configured in YAML and require firmware recompilation to change. Other settings can be adjusted through the Home Assistant UI without recompiling.
+### Optional packages
+
+Add these to the `files:` list alongside the core and standard packages.
+
+| Package | What it adds |
+| --- | --- |
+| `_addon_ble_proxy.yaml` | Bluetooth proxy wiring |
+| `_espnow.yaml` | Peer-to-peer relay control — see the [ESP-NOW docs](docs/espnow.md) |
+| `_hw_leds_individual.yaml` | Per-LED control of the ring, instead of the single `LED ring` entity |
+| `_hw_speaker.yaml` | Basic speaker, as an alternative to `_media_player.yaml` — use one or the other, never both |
+
+**Bluetooth proxy** can also be enabled with ESPHome's native component, by adding this to your
+device configuration:
+
+```yaml
+bluetooth_proxy:
+  # active: true
+```
+
+> [!WARNING]
+> Bluetooth proxy is experimental here and not fully tested. It needs the ESP-IDF framework and a
+> fair amount of free memory, so adding further custom components on top may not fit. It is not
+> included by default, to keep memory usage sane. Use at your own risk.
+
+For finer control over which packages get pulled in, start from the
+[advanced configuration template](TX-Ultimate-Easy-ESPHome_advanced.yaml). It is useful for
+isolating a misbehaving component or trimming memory usage.
+
+<!-- markdownlint-disable MD033 -->
+<details>
+<summary><b>Advanced configuration example</b></summary>
+
+```yaml
+substitutions:
+  name: tx-ultimate-easy
+  friendly_name: TX Ultimate Easy
+  device_format: EU
+  gang_count: 1
+
+packages:
+  remote_package:
+    url: https://github.com/GuyZipory/TX-Ultimate-Easy
+    ref: main
+    refresh: 5min
+    files:
+      # Core (essential) packages
+      - ESPHome/TX-Ultimate-Easy-ESPHome_common.yaml      # Basic shared settings
+      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_buttons.yaml  # Button logic
+      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_leds.yaml     # LED configuration
+      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_touch.yaml    # Touch panel support
+
+      # Optional but recommended
+      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_relays.yaml     # Relay control
+      - ESPHome/TX-Ultimate-Easy-ESPHome_hw_vibration.yaml  # Haptic feedback
+
+      # Audio — use none, or exactly one of these
+      - ESPHome/TX-Ultimate-Easy-ESPHome_media_player.yaml  # Media player (recommended)
+      # - ESPHome/TX-Ultimate-Easy-ESPHome_hw_speaker.yaml  # Basic speaker
+
+      # Add-ons
+      # - ESPHome/TX-Ultimate-Easy-ESPHome_espnow.yaml
+```
+
+</details>
+<!-- markdownlint-enable MD033 -->
+
+> [!NOTE]
+> Excluding core packages may cause instability or reduced functionality.
+
+## Configuring the device
+
+Everything below is adjustable from the device page in Home Assistant
+(**Settings → Devices & Services → ESPHome → your device**), without recompiling.
+
+### Relays
+
+Each relay's exposure is set with the `relay_N_mode` substitution:
+
+| Mode | Result |
+| --- | --- |
+| `switch` (default) | A `switch.` entity named **Relay N** |
+| `light` | A `light.` entity named **Relay N light** |
+| `disabled` | The relay is not exposed at all |
+
+Both modes are plain on/off — the relay is a dry contact, so it has no dimming of its own
+regardless of which one you pick. Use `relay_N_mode: light` if you want a `light.` entity; there
+is no need for Home Assistant's *show as Light* (`switch_as_x`) helper, which leaves a second,
+hidden copy of the relay on the device page.
+
+### LED indicators
+
+The LED ring is driven by three kinds of entity, each owning exactly one job:
+
+| Entity | Type | What it does |
+| --- | --- | --- |
+| **Relay N indicator** | Light (config) | How relay N's indicator looks when the relay is on — **colour**, **brightness**, and on/off as the master enable for that indicator |
+| **Relay N indicator area** | Select (config) | Which part of relay N's arc lights up: `Bottom`/`Left`, `Side`, `Top`/`Right`, or `All` |
+| **LED ring** | Light | Manual control of the whole ring, with the effects library |
+
+**Relay N indicator** does not drive the LEDs directly — it is the style the firmware paints with
+whenever relay N turns on. Changing its colour or brightness updates the panel live. Turn it off
+to stop relay N lighting the ring at all.
+
+**LED ring** takes over the whole strip while it is on: relay indicators stand down rather than
+fight it for the same LEDs. Turn it off and the indicators repaint themselves immediately (or
+Night Mode reapplies, if that is active).
+
+### Night Mode
+
+Night Mode freezes the LEDs at a fixed colour and brightness and, optionally, suppresses vibration
+and click-sound feedback. The state survives reboots.
+
+| Entity | Type | Default | Description |
+| --- | --- | --- | --- |
+| Night Mode | Switch | Off | Enable/disable night mode |
+| Night Mode - LED | Light (config) | Off | The LED colour and brightness used in night mode |
+| Night Mode - Suppress Vibration | Switch (config) | On | Block haptic feedback while night mode is active |
+| Night Mode - Suppress Sound | Switch (config) | On | Block click sounds while night mode is active |
+
+**Usage:**
+
+1. Set **Night Mode - LED** to the colour and brightness you want.
+2. Enable the **Night Mode** switch — the colour is snapshotted and the LEDs lock in.
+3. Toggle the suppression switches under *Configuration* to allow or block vibration and sound.
+4. To change the colour: disable Night Mode, adjust **Night Mode - LED**, then re-enable. That
+   re-snapshots the colour and persists it across reboots.
+5. Disable the switch to restore normal relay indicator behaviour.
+
+Night Mode never changes the **LED ring** entity's own state. If you switch the LED ring on while
+Night Mode is active it paints over the night colour, and turning it back off restores the night
+colour rather than the relay indicators.
+
+### Touch and buttons
+
+| Entity | What it controls |
+| --- | --- |
+| **Button N action** | What a press does locally: nothing (leaving the button free for Home Assistant automations) or toggle the matching relay |
+| **Button - Long-press delay** | How long a press must be held to count as a long-press instead of a click |
+| **Button - Multi-click delay** | The double-click window — and therefore the delay before a relay toggles |
+| **Touch - Event duration** | How long the touch event sensors stay ON in Home Assistant. Does not affect click detection or relay latency |
+| **Touch - Multi-touch gestures** | Enables multi-touch recognition |
+| **Touch - Swipe gestures** | Enables swipe recognition |
+| **Touch - Vibration feedback** | `Disabled`, `On press`, `On release` or `Always` |
+| **Vibration - Duration** | How long the motor runs per pulse |
 
 ### Factory defaults
 
@@ -571,78 +400,74 @@ around `250` to get double-click back, accepting that lag on every toggle.
 gestures*, then enable the corresponding event entities (they are hidden by default) under the
 device page → **+ N entities not shown**.
 
-> [!IMPORTANT]  
-> These defaults apply to **new installations only**. All of these settings are stored in NVS, and a
-> saved value always wins over the shipped default — so a device that has already been flashed keeps
-> whatever it had. To adopt them on an existing device, change the values by hand in Home Assistant.
+> [!NOTE]
+> These settings live in NVS. On an update, a setting you have never changed by hand picks up the
+> new shipped default, while one you *have* changed keeps your value.
 
-## Usage
+### Advanced tuning
 
-After installation, you can:
+Two optional substitutions free up IRAM on newer ESP32 silicon. Both default to the safe, existing
+behaviour — **only set them once you have confirmed your device supports them**, by reading its
+boot log.
 
-1. Configure your device through Home Assistant UI
-2. Customize touch behaviors
-3. Set up LED patterns and effects
-4. Create automations
-5. Enable optional features like Bluetooth proxy
+```yaml
+substitutions:
+  esp32_minimum_chip_revision: "3.1"   # default: "3.0"
+  esp32_sram1_as_iram: "true"          # default: "false"
+```
 
-## Configuration Options
+- **`esp32_minimum_chip_revision`** — frees ~10 kB of IRAM.
+  Safe only if your boot log reports `Chip rev >= 3.0 detected` **and** the chip is revision 3.1
+  or newer. The bootloader will refuse to start on older silicon.
+- **`esp32_sram1_as_iram`** — frees ~40 kB of IRAM.
+  Safe only if your boot log says `Bootloader supports SRAM1 as IRAM`.
+  Requires a bootloader from ESP-IDF v5.1 or newer.
 
-TX Ultimate Easy offers extensive configuration options:
+> [!WARNING]
+> Enabling `esp32_sram1_as_iram` on a device with an older bootloader means the app will not boot.
+> **OTA updates cannot replace the bootloader** — recovery requires a USB flash. Check the boot log
+> first.
 
-- Touch panel gestures
-- LED colors, patterns, and behaviors
-- Relay modes and functions
-- Audio and haptic feedback settings
-- Network and connectivity options
-- Optional Bluetooth proxy functionality
+To find those lines, look near the top of the device's log output right after a restart:
+
+```text
+[W][app:168]: Chip rev >= 3.0 detected. Set minimum_chip_revision: "3.1" ...
+[W][app:198]: Bootloader supports SRAM1 as IRAM (+40KB). Set sram1_as_iram: true ...
+```
+
+ESPHome only prints each line when that option is actually applicable to your hardware.
+
+### Events and automation
+
+The device fires Home Assistant events for clicks, long-presses, swipes and multi-touch, which is
+the reliable way to trigger automations — sensors tell you the current state, events capture the
+action. Automation itself is left entirely to Home Assistant; this firmware focuses on exposing
+the device properly.
+
+Payload schema and example automations are in the **[Events docs](docs/events.md)**.
 
 ## Contributing
 
-We welcome contributions from the community! Here's how you can help:
+Fork the repo, branch from `main`, and open a pull request targeting `main`. Changes need to pass
+the lint gates (YAML, C++, Markdown) and the Arduino and ESP-IDF build matrix.
 
-1. Fork the repository
-2. Create a feature branch from `main`
-3. Make your changes
-4. Submit a pull request targeting the `main` branch
-
-Please ensure your code follows our standards:
-
-- Passes all lint checks (YAML, C++, Markdown)
-- Includes appropriate documentation
-- Follows existing code style
-
-## Support and Community
-
-Need help? Here are your options:
-
-- **Bug Reports & Feature Requests**: Use [GitHub Issues](https://github.com/GuyZipory/TX-Ultimate-Easy/issues)
-    for all bug reports and feature requests
-- **Community Chat**: Join our [Discord Server](https://discord.gg/Db6WJWzWuf)
-    for discussions and community interaction
-- **Support the Project**: Consider supporting through Buy Me a Coffee
-
-Note: For proper tracking and resolution:
-- All bug reports and feature requests must be submitted through GitHub Issues, not Discord
-- Submit issues here: [Issues · GuyZipory/TX-Ultimate-Easy](https://github.com/GuyZipory/TX-Ultimate-Easy/issues)
-
-[![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/edwardfirmo)
+Bugs and feature requests belong in
+[GitHub Issues](https://github.com/GuyZipory/TX-Ultimate-Easy/issues).
 
 ## Acknowledgments
 
-This project builds upon the work of several amazing projects and contributors:
+This project builds on the work of several others:
 
 <!-- markdownlint-disable MD013 -->
+- [edwardtfn/TX-Ultimate-Easy](https://github.com/edwardtfn/TX-Ultimate-Easy) by Edward Firmo — the upstream project this is forked from
 - [SmartHome yourself - SONOFF TX Ultimate for ESPHome](https://github.com/SmartHome-yourself/sonoff-tx-ultimate-for-esphome)
 - [Un loco y su tecnología - Sonoff TX Ultimate with ESPHome](https://www.youtube.com/watch?v=58v8oqSQgXQ)
 - [@PxPert](https://github.com/PxPert) - [Sonoff TX Ultimate and Voice Assistant](https://community.home-assistant.io/t/sonoff-tx-ultimate-and-voice-assistant/682214?u=edwardtfn)
 <!-- markdownlint-enable MD013 -->
 
-Special thanks to all contributors and community members who help make this project better.
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
