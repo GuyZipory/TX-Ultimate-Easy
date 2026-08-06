@@ -531,7 +531,10 @@ If the device isn't discovered automatically:
    - Relay modes (switch/light)
    - Button actions
    - LED behaviors
-   - Touch event duration (for differentiating clicks vs long-press)
+   - Button - Long-press delay (how long a press must be held to count as a long-press instead of a click)
+   - Button - Multi-click delay (the double-click window; also the delay before a relay toggles)
+   - Touch - Event duration (how long the touch event sensors stay ON in HA; does not affect click detection)
+   - Touch - Multi-touch / Swipe gestures (both off by default — see Factory defaults below)
    - Haptic feedback settings
    - Audio feedback settings
 4. Test your configuration:
@@ -542,6 +545,36 @@ If the device isn't discovered automatically:
 
 > [!NOTE]  
 > Model format and gang count are now configured in YAML and require firmware recompilation to change. Other settings can be adjusted through the Home Assistant UI without recompiling.
+
+### Factory defaults
+
+The firmware ships tuned as a fast, reliable **single-tap** switch. Everything below is opt-in from
+the Home Assistant UI — nothing is removed, it just starts off:
+
+| Setting | Default | Why |
+| --- | --- | --- |
+| Button - Long-press delay | `2000` ms | Long-press triggers no relay action, so a press longer than this does nothing at all. A high value means a slow or lingering tap still toggles the light. |
+| Button - Multi-click delay | `0` ms | The relay toggles the instant you lift your finger, with no lag. |
+| Touch - Event duration | `100` ms | Pulse width of the touch event sensors in HA. Does not affect click detection or relay latency. |
+| Touch - Multi-touch gestures | Off | The panel's MCU often misreads an ordinary tap as a gesture, and a gesture cancels the pending click — so the light would not turn on. |
+| Touch - Swipe gestures | Off | Same reason as multi-touch. |
+| Touch - Vibration feedback | Disabled | Haptics are a matter of taste; the motor is audible in a quiet room. |
+| Vibration - Duration | `150` ms | Long enough for the motor to spin up and actually be felt, once feedback is enabled. |
+
+**Double-click is off by default.** `Button - Multi-click delay: 0` is what makes the relay respond
+instantly, but it also means the click counter never reaches two, so the double-click and
+multiple-click events never fire. This is an unavoidable trade — the window needed to detect a
+second tap (~250 ms) *is* the delay before the relay moves. Set *Button - Multi-click delay* to
+around `250` to get double-click back, accepting that lag on every toggle.
+
+**To use swipe or multi-touch gestures**, turn on *Touch - Swipe gestures* / *Touch - Multi-touch
+gestures*, then enable the corresponding event entities (they are hidden by default) under the
+device page → **+ N entities not shown**.
+
+> [!IMPORTANT]  
+> These defaults apply to **new installations only**. All of these settings are stored in NVS, and a
+> saved value always wins over the shipped default — so a device that has already been flashed keeps
+> whatever it had. To adopt them on an existing device, change the values by hand in Home Assistant.
 
 ## Usage
 
