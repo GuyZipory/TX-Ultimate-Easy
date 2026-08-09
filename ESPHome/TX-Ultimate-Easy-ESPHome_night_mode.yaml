@@ -61,6 +61,15 @@ globals:
     restore_value: true
     initial_value: '26'   # 0.1 * 255 (rounded)
 
+  # ─── The colour picker doubles as the on/off control for the night ring, so a  ───
+  # ─── device that has never turned it on must be brought up showing the colour  ───
+  # ─── it is already using - otherwise "picker off = dark" would silently darken  ───
+  # ─── panels that never opted into it. Seeded once, in boot_initialize.          ───
+  - id: night_mode_picker_seeded
+    type: bool
+    restore_value: true
+    initial_value: 'false'
+
   # ─── Effective hold threshold in ms, derived from nr_night_mode_hold_time and ───
   # ─── nr_button_long_press_delay by night_mode_hold_recalc. Not restored: both  ───
   # ─── inputs are, and boot_initialize recomputes it from them.                  ───
@@ -112,6 +121,10 @@ light:
     icon: mdi:weather-night
     entity_category: config
     restore_mode: RESTORE_DEFAULT_OFF
+    # It drives no hardware, so a fade here buys nothing and costs correctness: with ESPHome's
+    # 1s default, current_values lags the target for a full second and the snapshot below would
+    # have to chase it. The visible fade lives on light_night_mode_leds instead.
+    default_transition_length: 0s
 
   # Internal partition that drives the physical strip while Night Mode is active.
   - id: light_night_mode_leds
@@ -124,9 +137,14 @@ light:
         to: ${LIGHT_MAX_ADDR}
 
 script:
-  # Apply the stored night mode color/brightness to the night mode light.
+  # The single painter for the night ring: everything that wants the ring repainted calls this.
   # Waits for relay boot initialization so it is safe to call from on_boot.
+  #
+  # mode: restart, not the default single. night_mode_hold_blip and lights_all's on_turn_off both
+  # execute this, and a `single` script that is parked in the wait_until below would silently drop
+  # them - stranding the ring at whatever the last writer left.
   - id: night_mode_apply
+    mode: restart
     then:
       # Bounded wait for relay boot initialization. script.wait has no timeout, so
       # wait_until is used as defense-in-depth against an indefinite block on boot.
@@ -139,13 +157,25 @@ script:
           condition:
             lambda: "return sw_night_mode->state;"
           then:
-            - light.turn_on:
-                id: light_night_mode_leds
-                red: !lambda "return id(night_mode_red) / 255.0f;"
-                green: !lambda "return id(night_mode_green) / 255.0f;"
-                blue: !lambda "return id(night_mode_blue) / 255.0f;"
-                brightness: !lambda "return id(night_mode_brightness) / 255.0f;"
-                transition_length: ${night_mode_light_transition_length}
+            - if:
+                condition:
+                  lambda: "return id(light_night_mode).current_values.is_on();"
+                then:
+                  - light.turn_on:
+                      id: light_night_mode_leds
+                      red: !lambda "return id(night_mode_red) / 255.0f;"
+                      green: !lambda "return id(night_mode_green) / 255.0f;"
+                      blue: !lambda "return id(night_mode_blue) / 255.0f;"
+                      brightness: !lambda "return id(night_mode_brightness) / 255.0f;"
+                      transition_length: ${night_mode_light_transition_length}
+                else:
+                  # Picker off while night mode is on means "dark on purpose" - the one way to
+                  # have night mode active with the ring extinguished. The relay indicators stay
+                  # stood down (light_set_state returns early whenever night mode is on), so this
+                  # is a dark ring rather than a handover back to the indicators.
+                  - light.turn_off:
+                      id: light_night_mode_leds
+                      transition_length: ${night_mode_light_transition_length}
 
   # Called by each template output write_action whenever the color picker value changes.
   # Debounced so the three channel writes (R, G, B) collapse into one LED update.
@@ -158,18 +188,24 @@ script:
           condition:
             lambda: "return sw_night_mode->state;"
           then:
-            - lambda: |-
-                id(night_mode_red)        = static_cast<uint8_t>(id(light_night_mode).current_values.get_red()        * 255.0f + 0.5f);  // add 0.5 for rounding to nearest integer
-                id(night_mode_green)      = static_cast<uint8_t>(id(light_night_mode).current_values.get_green()      * 255.0f + 0.5f);
-                id(night_mode_blue)       = static_cast<uint8_t>(id(light_night_mode).current_values.get_blue()       * 255.0f + 0.5f);
-                id(night_mode_brightness) = static_cast<uint8_t>(id(light_night_mode).current_values.get_brightness() * 255.0f + 0.5f);
-            - light.turn_on:
-                id: light_night_mode_leds
-                red: !lambda "return id(night_mode_red) / 255.0f;"
-                green: !lambda "return id(night_mode_green) / 255.0f;"
-                blue: !lambda "return id(night_mode_blue) / 255.0f;"
-                brightness: !lambda "return id(night_mode_brightness) / 255.0f;"
-                transition_length: ${night_mode_light_transition_length}
+            # Snapshot ONLY while the picker is on - the same gate sw_night_mode's on_turn_on uses.
+            # An off light still reports its colour and brightness from current_values (state and
+            # brightness are independent fields in LightStateRTCState, and an unconfigured light
+            # restores to white at 1.0), so snapshotting an off picker overwrites the stored night
+            # colour with white at 100% - and these globals are restore_value, so it sticks. That is
+            # exactly what the picker's deferred restore write did on every boot that came up with
+            # night mode already on.
+            - if:
+                condition:
+                  lambda: "return id(light_night_mode).current_values.is_on();"
+                then:
+                  - lambda: |-
+                      id(night_mode_red)        = static_cast<uint8_t>(id(light_night_mode).current_values.get_red()        * 255.0f + 0.5f);  // add 0.5 for rounding to nearest integer
+                      id(night_mode_green)      = static_cast<uint8_t>(id(light_night_mode).current_values.get_green()      * 255.0f + 0.5f);
+                      id(night_mode_blue)       = static_cast<uint8_t>(id(light_night_mode).current_values.get_blue()       * 255.0f + 0.5f);
+                      id(night_mode_brightness) = static_cast<uint8_t>(id(light_night_mode).current_values.get_brightness() * 255.0f + 0.5f);
+                  - script.execute: persist_night_mode_prefs
+            - script.execute: night_mode_apply
 
   # ── Hold to toggle ───────────────────────────────────────────────────────────────────────
   # A touch panel has no "safe" edge: brushing past it in a narrow doorway registers as an
@@ -246,6 +282,24 @@ script:
   - id: !extend boot_initialize
     then:
       - script.execute: night_mode_hold_recalc
+      # One-time seed of the colour picker from the stored night colour. The picker is now the
+      # on/off control for the ring, so a device that has never touched it must come up showing
+      # the colour it is already using - otherwise "picker off = dark" would darken panels that
+      # never asked for that. on_boot priority 700 runs after every component setup (LightState
+      # 799, TemplateSwitch 798), and the picker's own restore only stages next_write_, so this
+      # call supersedes it and the first physical write carries the seeded values.
+      - if:
+          condition:
+            lambda: "return !id(night_mode_picker_seeded);"
+          then:
+            - light.turn_on:
+                id: light_night_mode
+                red: !lambda "return id(night_mode_red) / 255.0f;"
+                green: !lambda "return id(night_mode_green) / 255.0f;"
+                blue: !lambda "return id(night_mode_blue) / 255.0f;"
+                brightness: !lambda "return id(night_mode_brightness) / 255.0f;"
+            - lambda: id(night_mode_picker_seeded) = true;
+            - script.execute: persist_night_mode_prefs
 
   - id: !extend touch_on_press
     then:
@@ -344,11 +398,15 @@ switch:
             night_mode_apply->execute();
     on_turn_off:
       then:
-        - lambda: |-
-            // No need to clear the snapshot values - they will be overwritten next time night mode is enabled.
-            night_mode_apply->stop();  // stop in case we're in the middle of a transition
-            light_night_mode_leds->turn_off();
-            show_relay_status->execute();  // re-evaluate all relay indicators
+        # No need to clear the snapshot values - they will be overwritten next time night mode
+        # is enabled. Split into discrete actions so the turn-off can carry an explicit 0s
+        # transition: a bare turn_off() inherits ESPHome's 1s default, which outlives and erases
+        # the 500ms indicator repaint show_relay_status is about to start over the same LEDs.
+        - lambda: night_mode_apply->stop();  // stop in case we're in the middle of a transition
+        - light.turn_off:
+            id: light_night_mode_leds
+            transition_length: 0s
+        - lambda: show_relay_status->execute();  // re-evaluate all relay indicators
 
   # ── Settings (entity_category: config → grouped under "Configuration") ────
   - id: sw_night_mode_suppress_vibration

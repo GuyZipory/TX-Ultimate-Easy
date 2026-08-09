@@ -345,7 +345,7 @@ and click-sound feedback. The state survives reboots.
 | Entity | Type | Default | Description |
 | --- | --- | --- | --- |
 | Night Mode | Switch | Off | Enable/disable night mode |
-| Night Mode - LED | Light (config) | Off | The LED colour and brightness used in night mode |
+| Night Mode - LED | Light (config) | On, amber @ 10% | The LED colour and brightness used in night mode. Turn it **off** to keep the ring dark while Night Mode is active |
 | Night Mode - Suppress Vibration | Switch (config) | On | Block haptic feedback while night mode is active |
 | Night Mode - Suppress Sound | Switch (config) | On | Block click sounds while night mode is active |
 | Night Mode - Require Hold | Switch (config) | **Off** | Require a held touch to switch anything while night mode is active |
@@ -354,15 +354,24 @@ and click-sound feedback. The state survives reboots.
 **Usage:**
 
 1. Set **Night Mode - LED** to the colour and brightness you want.
-2. Enable the **Night Mode** switch — the colour is snapshotted and the LEDs lock in.
+2. Enable the **Night Mode** switch — the LEDs lock in at that colour.
 3. Toggle the suppression switches under *Configuration* to allow or block vibration and sound.
-4. To change the colour: disable Night Mode, adjust **Night Mode - LED**, then re-enable. That
-   re-snapshots the colour and persists it across reboots.
-5. Disable the switch to restore normal relay indicator behaviour.
+4. To change the colour, just adjust **Night Mode - LED** — it applies live, with Night Mode still
+   on, and persists across reboots. No need to disable Night Mode first.
+5. Turn **Night Mode - LED** *off* to keep the ring completely dark while Night Mode stays active.
+6. Disable the **Night Mode** switch to restore normal relay indicator behaviour.
 
 Night Mode never changes the **LED ring** entity's own state. If you switch the LED ring on while
 Night Mode is active it paints over the night colour, and turning it back off restores the night
 colour rather than the relay indicators.
+
+> **Upgrading from an earlier build:** **Night Mode - LED** used to ship *off*, meaning
+> "colour not configured yet". It is now the on/off control for the night ring, so on the first
+> boot after this update it turns itself on at whatever colour the panel was already using — no
+> visible change. One exception: a panel that rebooted while Night Mode was on under the older
+> firmware had its stored night colour overwritten with **white at 100%** (the colour picker's
+> restore defaults leaked into the snapshot). If that happened to yours, set **Night Mode - LED**
+> to the colour you want once; it sticks from then on.
 
 #### Require Hold — ignoring accidental touches
 
