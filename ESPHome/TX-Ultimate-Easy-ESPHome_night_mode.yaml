@@ -15,6 +15,14 @@ substitutions:
   night_mode_light_transition_length: 500ms
   night_mode_sync_leds_delay: 20ms
 
+  # Shape of the "your hold registered" cue. Tuning knobs, deliberately not HA entities.
+  # The boost is added to the configured night brightness, so the cue stays proportionate
+  # to how dim the ring is set (default 0.1 + 0.25 = 0.35).
+  night_mode_hold_blip_length: 150ms
+  night_mode_hold_blip_boost: 0.25
+
+  TAG_NIGHT_MODE: tx_ultimate_easy.night_mode
+
 esphome:
   # MUST stay a list, even with a single entry. Package merging only concatenates when both
   # sides are lists (esphome/config_helpers.py merge_config); a mapping here silently replaces
@@ -52,6 +60,14 @@ globals:
     type: uint8_t
     restore_value: true
     initial_value: '26'   # 0.1 * 255 (rounded)
+
+  # ─── Effective hold threshold in ms, derived from nr_night_mode_hold_time and ───
+  # ─── nr_button_long_press_delay by night_mode_hold_recalc. Not restored: both  ───
+  # ─── inputs are, and boot_initialize recomputes it from them.                  ───
+  - id: night_mode_hold_effective
+    type: uint32_t
+    restore_value: false
+    initial_value: '600'
 
 output:
   # No-op outputs backing the virtual color picker.
@@ -155,6 +171,153 @@ script:
                 brightness: !lambda "return id(night_mode_brightness) / 255.0f;"
                 transition_length: ${night_mode_light_transition_length}
 
+  # ── Hold to toggle ───────────────────────────────────────────────────────────────────────
+  # A touch panel has no "safe" edge: brushing past it in a narrow doorway registers as an
+  # ordinary tap and toggles the relay. The panel MCU owns the capacitive threshold and never
+  # tells us anything but a position, so sensitivity cannot be lowered - instead, while night
+  # mode is on, a touch has to be *held* before it is allowed to do anything. The gate itself
+  # lives in _hw_buttons.yaml (that is where press duration is measured); this file owns the
+  # settings, the threshold, and the confirmation cue.
+
+  # Single source of truth for the threshold, so the gate and the cue can never disagree.
+  #
+  # A press longer than "Button - Long-press delay" is classified as a long press, and long-press
+  # is not wired to any relay action. A hold threshold at or above that delay would therefore
+  # leave no window at all in which a press is both long enough to pass the gate and short enough
+  # to still count as a click - the panel would simply stop responding. Clamp under it, and say so.
+  - id: night_mode_hold_recalc
+    then:
+      - lambda: |-
+          uint32_t hold = static_cast<uint32_t>(nr_night_mode_hold_time->state);
+          const uint32_t long_press = static_cast<uint32_t>(nr_button_long_press_delay->state);
+          // nr_button_long_press_delay has min_value 200, so this cannot underflow.
+          const uint32_t ceiling = (long_press > 100) ? (long_press - 100) : 100;
+          if (hold > ceiling) {
+            ESP_LOGW("${TAG_NIGHT_MODE}",
+                     "Hold time %" PRIu32 " ms leaves no room under the long-press delay of %" PRIu32
+                     " ms - using %" PRIu32 " ms instead", hold, long_press, ceiling);
+            hold = ceiling;
+          }
+          id(night_mode_hold_effective) = hold;
+
+  # Armed on every press, cancelled on release. If the finger is still down when the threshold
+  # elapses, the cue fires - so releasing right after the blip is always a registered touch.
+  - id: night_mode_hold_arm
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: |-
+              // The LED ring owns the strip while the user drives it by hand (_hw_leds.yaml);
+              // don't fight it for the sake of a cue.
+              return sw_night_mode->state &&
+                     sw_night_mode_require_hold->state &&
+                     !id(leds_manual_override);
+          then:
+            - lambda: night_mode_hold_recalc->execute();
+            - delay: !lambda return id(night_mode_hold_effective);
+            - script.execute: night_mode_hold_blip
+
+  # Brightness pulse on the ring night mode already drives - no extra partition, and nothing
+  # else is competing for those LEDs while night mode is on. Deliberately a separate script
+  # from night_mode_hold_arm: the release handler stops the arm, and stopping a blip midway
+  # would strand the ring at the boosted brightness.
+  - id: night_mode_hold_blip
+    mode: restart
+    then:
+      - light.turn_on:
+          id: light_night_mode_leds
+          red: !lambda "return id(night_mode_red) / 255.0f;"
+          green: !lambda "return id(night_mode_green) / 255.0f;"
+          blue: !lambda "return id(night_mode_blue) / 255.0f;"
+          brightness: !lambda "return std::min(1.0f, id(night_mode_brightness) / 255.0f + ${night_mode_hold_blip_boost}f);"
+          transition_length: 0s
+      - delay: ${night_mode_hold_blip_length}
+      # Night mode may have been switched off mid-hold; restoring via night_mode_apply would
+      # then do nothing and leave the ring bright, so hand back to the relay indicators instead.
+      - if:
+          condition:
+            lambda: "return sw_night_mode->state;"
+          then:
+            - script.execute: night_mode_apply
+          else:
+            - lambda: show_relay_status->execute();
+
+  - id: !extend boot_initialize
+    then:
+      - script.execute: night_mode_hold_recalc
+
+  - id: !extend touch_on_press
+    then:
+      - script.execute: night_mode_hold_arm
+
+  - id: !extend touch_on_release
+    then:
+      # Only the arm - see night_mode_hold_blip.
+      - script.stop: night_mode_hold_arm
+
+  # ESPHome batches preference writes for ~60s, so a power cut right after changing one of the
+  # night mode settings would lose it. Same proven pattern as persist_relay_prefs; sync() memcmps
+  # before writing, so calling it here costs no flash wear.
+  - id: persist_night_mode_prefs
+    mode: restart
+    then:
+      - delay: 800ms
+      - lambda: global_preferences->sync();
+
+  - id: !extend dump_config
+    then:
+      - lambda: |-
+          ESP_LOGCONFIG("${TAG_NIGHT_MODE}", "Night mode: %s", ONOFF(sw_night_mode->state));
+          ESP_LOGCONFIG("${TAG_NIGHT_MODE}", "  Suppress vibration: %s",
+                                             YESNO(sw_night_mode_suppress_vibration->state));
+          ESP_LOGCONFIG("${TAG_NIGHT_MODE}", "  Suppress sound: %s",
+                                             YESNO(sw_night_mode_suppress_sound->state));
+          ESP_LOGCONFIG("${TAG_NIGHT_MODE}", "  Require hold: %s",
+                                             YESNO(sw_night_mode_require_hold->state));
+          night_mode_hold_recalc->execute();
+          ESP_LOGCONFIG("${TAG_NIGHT_MODE}", "  Hold time: %.0fms (effective: %" PRIu32 "ms)",
+                                             nr_night_mode_hold_time->state,
+                                             id(night_mode_hold_effective));
+
+  - id: !extend dump_config_list_packages
+    then:
+      - script.wait: dump_config
+      - lambda: |-
+          // Check for requirements
+          #ifndef TX_ULTIMATE_EASY_COMMON
+            #error "The package TX-Ultimate-Easy-ESPHome_common.yaml is required."
+          #endif
+          #ifndef TX_ULTIMATE_EASY_HW_BUTTONS
+            #error "The package TX-Ultimate-Easy-ESPHome_hw_buttons.yaml is required."
+          #endif
+
+          // Identify itself
+          ESP_LOGCONFIG(ESPHOME_PROJECT_NAME, "  - Night Mode");
+
+number:
+  # Upper bound is 1500 rather than the long-press delay's 2000: the two must not meet, or no
+  # press can ever be both long enough and short enough. night_mode_hold_recalc enforces the
+  # rest at runtime, since the long-press delay is itself user-tunable.
+  - id: nr_night_mode_hold_time
+    name: "Night Mode - Hold Time"
+    platform: template
+    icon: mdi:timer-sand
+    unit_of_measurement: ms
+    mode: box
+    internal: false
+    entity_category: config
+    min_value: 200
+    max_value: 1500
+    step: 50
+    initial_value: 600
+    optimistic: true
+    restore_value: true
+    on_value:
+      then:
+        - script.execute: night_mode_hold_recalc
+        - script.execute: persist_night_mode_prefs
+
 switch:
   # ── Main control (no entity_category → appears in main entity list) ───────
   - id: sw_night_mode
@@ -205,4 +368,23 @@ switch:
     internal: false
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+
+  # Ships OFF, unlike the two suppress switches above: it changes how the panel responds to
+  # touch, so an OTA must not silently alter that. Turn it on once the panel is confirmed
+  # behaving normally. While it is on and night mode is active, a touch shorter than the hold
+  # time does nothing at all - no relay, no HA event, no binary sensor.
+  - id: sw_night_mode_require_hold
+    name: "Night Mode - Require Hold"
+    platform: template
+    entity_category: config
+    icon: mdi:gesture-tap-hold
+    internal: false
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      then:
+        - script.execute: persist_night_mode_prefs
+    on_turn_off:
+      then:
+        - script.execute: persist_night_mode_prefs
 ...

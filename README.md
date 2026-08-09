@@ -29,7 +29,7 @@ several that fight each other.
 | **Defaults** | Ships as a fast single-tap switch: the relay moves the instant you lift your finger, and the gesture recognition that used to swallow taps is off. See [Factory defaults](#factory-defaults). |
 | **Relays** | `relay_N_mode` picks `switch`, `light` or `disabled` per relay. `light` gives you a real `light.` entity from the firmware, so Home Assistant's *show as Light* helper is no longer needed. See [Relays](#relays). |
 | **LED indicators** | One entity per job. `Relay N indicator` sets the colour **and** brightness (the brightness slider used to do nothing). `Relay N indicator area` picks which part of the arc lights up. `LED ring` owns the whole strip while it is on, instead of fighting the indicators. See [LED indicators](#led-indicators). |
-| **Night Mode** | The colour picker is `Night Mode - LED`, filed under *Configuration*. See [Night Mode](#night-mode). |
+| **Night Mode** | The colour picker is `Night Mode - LED`, filed under *Configuration*. `Night Mode - Require Hold` makes the panel ignore accidental brushes at night, so only a deliberate held touch switches the light. See [Night Mode](#night-mode). |
 | **Advanced tuning** | Two optional substitutions free up IRAM on newer ESP32 silicon. See [Advanced tuning](#advanced-tuning). |
 <!-- markdownlint-enable MD013 -->
 
@@ -348,6 +348,8 @@ and click-sound feedback. The state survives reboots.
 | Night Mode - LED | Light (config) | Off | The LED colour and brightness used in night mode |
 | Night Mode - Suppress Vibration | Switch (config) | On | Block haptic feedback while night mode is active |
 | Night Mode - Suppress Sound | Switch (config) | On | Block click sounds while night mode is active |
+| Night Mode - Require Hold | Switch (config) | **Off** | Require a held touch to switch anything while night mode is active |
+| Night Mode - Hold Time | Number (config) | 600 ms | How long the touch must be held |
 
 **Usage:**
 
@@ -361,6 +363,36 @@ and click-sound feedback. The state survives reboots.
 Night Mode never changes the **LED ring** entity's own state. If you switch the LED ring on while
 Night Mode is active it paints over the night colour, and turning it back off restores the night
 colour rather than the relay indicators.
+
+#### Require Hold — ignoring accidental touches
+
+The panel is touch-sensitive across its whole face, so squeezing past one in a narrow doorway can
+brush it with a shoulder and switch the light on. The panel's own capacitive sensitivity is set by
+its internal MCU and cannot be changed from the firmware — the touch link is read-only and reports
+nothing but a position. What the firmware *can* do is refuse to act on a touch that was too brief
+to be deliberate.
+
+Turn on **Night Mode - Require Hold**, and while Night Mode is active a touch shorter than
+**Night Mode - Hold Time** is discarded entirely: no relay toggles, no Home Assistant event fires,
+no button sensor updates, and nothing is sent over ESP-NOW. Hold past the threshold and the LED
+ring blips brighter for a moment to confirm the touch registered — then release.
+
+A few things worth knowing:
+
+- **It ships off.** It changes how the panel responds to touch, so flashing will not turn it on for
+  you. Enable it once you have confirmed the panel is behaving normally.
+- **Automations are affected too, by design.** While the gate is active, a short tap fires no
+  `esphome.tx_ultimate_easy` event at all, so Home Assistant automations bound to a button click
+  will not run for brushes either. That is usually the point — but check your automations first.
+- **Tune it from the log.** Every rejected touch is logged with the duration that was actually
+  measured, e.g. `Night mode: ignoring 180 ms touch (hold 600 ms to toggle)`. If real presses are
+  being rejected, lower the hold time; if brushes still get through, raise it.
+- **It has a ceiling.** A press longer than **Button - Long-press delay** counts as a long press,
+  which is not wired to any relay action, so the usable window is *hold time … long-press delay*.
+  The hold time is capped at 1500 ms and is clamped at runtime to stay clear of the long-press
+  delay if you lower that one; the clamp is reported in the log and in the boot config dump.
+- Both entities are new, so they simply start at their defaults on first boot. Nothing existing was
+  renamed, so no other setting is reset.
 
 ### Touch and buttons
 
