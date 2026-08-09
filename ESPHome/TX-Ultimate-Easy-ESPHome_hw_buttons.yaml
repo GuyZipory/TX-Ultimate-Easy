@@ -396,6 +396,36 @@ script:
             ESP_LOGI("${TAG_HW_BUTTONS}", "Button press duration: %" PRIu32 " ms", press_duration);
             // Update last release time for inter-click gap detection
             id(last_release_time) = current_time;
+
+            #ifdef TX_ULTIMATE_EASY_NIGHT_MODE
+            // Night mode "hold to toggle": brushing past the panel in a narrow doorway is a very
+            // short contact, and the panel's own capacitive threshold is not reachable from here
+            // (the UART is read-only and carries no pressure). So while the requirement is on, a
+            // touch shorter than the threshold is dropped outright - before button_click_event,
+            // so no relay toggles, no HA event fires, no click binary sensor publishes, and the
+            // ESP-NOW sender (which extends the same script) sends nothing either.
+            // The threshold and its clamp live in _night_mode.yaml; see night_mode_hold_recalc.
+            //
+            // Everything below is written as bare C++ (foo->bar()) rather than id(foo): ESPHome
+            // resolves id() references at codegen time, before the preprocessor ever sees this
+            // block, so an id() here would fail to validate on builds without the night mode
+            // package. id(x) on a global expands to exactly x->value() (cpp_generator.py).
+            if (sw_night_mode->state && sw_night_mode_require_hold->state) {
+              night_mode_hold_recalc->execute();
+              const uint32_t hold_required = night_mode_hold_effective->value();
+              if (press_duration < hold_required) {
+                ESP_LOGI("${TAG_HW_BUTTONS}",
+                          "Night mode: ignoring %" PRIu32 " ms touch (hold %" PRIu32 " ms to toggle)",
+                          press_duration, hold_required);
+                id(button_press_start_time) = 0;
+                id(last_release_time) = 0;
+                id(click_counter) = 0;
+                id(button_press_button) = 0;
+                return;
+              }
+            }
+            #endif  // TX_ULTIMATE_EASY_NIGHT_MODE
+
             // Runtime value from HA instead of the compile-time constant, so a slow tap can be
             // kept a click without reflashing (BUTTON_LONG_PRESS_DELAY is only the default).
             uint32_t long_press_delay = (uint32_t) nr_button_long_press_delay->state;
