@@ -384,7 +384,10 @@ to be deliberate.
 Turn on **Night Mode - Require Hold**, and while Night Mode is active a touch shorter than
 **Night Mode - Hold Time** is discarded entirely: no relay toggles, no Home Assistant event fires,
 no button sensor updates, and nothing is sent over ESP-NOW. Hold past the threshold and the LED
-ring blips brighter for a moment to confirm the touch registered — then release.
+ring blips brighter for a moment to confirm the touch registered — then release. The blip is the
+night colour a step brighter, so it stays proportionate to how dim you set the ring; with
+**Night Mode - LED** off it is that same colour at just the boost, so a dark ring gets a soft
+pulse rather than a full-brightness flash.
 
 A few things worth knowing:
 

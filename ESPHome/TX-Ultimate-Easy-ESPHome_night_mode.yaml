@@ -266,7 +266,16 @@ script:
           red: !lambda "return id(night_mode_red) / 255.0f;"
           green: !lambda "return id(night_mode_green) / 255.0f;"
           blue: !lambda "return id(night_mode_blue) / 255.0f;"
-          brightness: !lambda "return std::min(1.0f, id(night_mode_brightness) / 255.0f + ${night_mode_hold_blip_boost}f);"
+          # The boost is measured from whatever the ring is actually showing. With the picker
+          # off the ring is dark on purpose, so there is nothing to boost above and the base is
+          # zero - otherwise the cue would fire the last stored colour at stored brightness plus
+          # the boost into a deliberately dark room, which for a panel still holding the old
+          # white-at-100% snapshot means a full-brightness white flash.
+          brightness: !lambda |-
+            const float base = id(light_night_mode).current_values.is_on()
+                                 ? id(night_mode_brightness) / 255.0f
+                                 : 0.0f;
+            return std::min(1.0f, base + ${night_mode_hold_blip_boost}f);
           transition_length: 0s
       - delay: ${night_mode_hold_blip_length}
       # Night mode may have been switched off mid-hold; restoring via night_mode_apply would
